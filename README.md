@@ -13,9 +13,18 @@ ADRScope generates self-contained HTML viewers for ADRs following the [structure
 
 ## Screenshots
 
-| Faceted Search & Filtering | Relationship Graph |
-|:-------------------------:|:------------------:|
-| ![ADR Viewer](docs/_assets/screen1.png) | ![Relationship Graph](docs/_assets/screen2.png) |
+### Main Viewer
+![ADRScope Main View](docs/_assets/main.png)
+
+### ADR Details with Relationship Graph
+| ADR Content View | Category Breakdown |
+|:----------------:|:------------------:|
+| ![ADR View](docs/_assets/view-0.png) | ![Categories](docs/_assets/categories.png) |
+
+### Faceted Search & Filtering
+| Filter Panel | Filtered Results |
+|:------------:|:----------------:|
+| ![Filters](docs/_assets/filters.png) | ![Filtered View](docs/_assets/view-1.png) |
 
 ## Features
 
@@ -59,6 +68,13 @@ adrscope stats -i docs/decisions
 # Generate GitHub Wiki pages
 adrscope wiki -i docs/decisions -o wiki/
 ```
+
+## Documentation
+
+- [Getting Started Guide](docs/getting-started.md)
+- [User Guide](docs/user-guide.md)
+- [Configuration Reference](docs/configuration.md)
+- [Architecture Decision Records](docs/decisions/)
 
 ## Commands
 
