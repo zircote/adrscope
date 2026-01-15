@@ -1,178 +1,197 @@
-# {{crate_name}}
+# ADRScope
 
-<!-- Badges -->
-[![GitHub Template](https://img.shields.io/badge/template-zircote%2Frust--template-blue?logo=github)](https://github.com/zircote/rust-template)
-[![CI](https://github.com/zircote/{{crate_name}}/actions/workflows/ci.yml/badge.svg)](https://github.com/zircote/{{crate_name}}/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/{{crate_name}}.svg?logo=rust&logoColor=white)](https://crates.io/crates/{{crate_name}})
-[![Documentation](https://docs.rs/{{crate_name}}/badge.svg)](https://docs.rs/{{crate_name}})
-[![Rust Version](https://img.shields.io/badge/rust-1.80%2B-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![CI](https://github.com/zircote/adrscope/actions/workflows/ci.yml/badge.svg)](https://github.com/zircote/adrscope/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/adrscope.svg?logo=rust&logoColor=white)](https://crates.io/crates/adrscope)
+[![Documentation](https://docs.rs/adrscope/badge.svg)](https://docs.rs/adrscope)
+[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Clippy](https://img.shields.io/badge/linting-clippy-orange?logo=rust&logoColor=white)](https://github.com/rust-lang/rust-clippy)
 [![cargo-deny](https://img.shields.io/badge/security-cargo--deny-blue?logo=rust&logoColor=white)](https://github.com/EmbarkStudios/cargo-deny)
-[![Security: gitleaks](https://img.shields.io/badge/security-gitleaks-blue?logo=git&logoColor=white)](https://github.com/gitleaks/gitleaks)
-[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?logo=dependabot)](https://docs.github.com/en/code-security/dependabot)
 
-A Rust crate description.
+A lightweight visualization tool for Architecture Decision Records (ADRs).
+
+ADRScope generates self-contained HTML viewers for ADRs following the [structured-MADR](https://adr.github.io/madr/) format. It supports faceted search, relationship graphs, and GitHub Wiki generation.
+
+## Screenshots
+
+| Faceted Search & Filtering | Relationship Graph |
+|:-------------------------:|:------------------:|
+| ![ADR Viewer](docs/_assets/screen1.png) | ![Relationship Graph](docs/_assets/screen2.png) |
 
 ## Features
 
-- Feature 1
-- Feature 2
-- Feature 3
+- **Self-contained HTML viewer** - Single file with embedded CSS/JS, no dependencies
+- **Faceted search** - Filter by status, category, tags, author, project, and technologies
+- **Relationship graphs** - Interactive visualization of ADR relationships
+- **Multiple themes** - Light, dark, and system-preference modes
+- **GitHub Wiki generation** - Generate wiki pages with index, status, category, and timeline views
+- **Validation** - Check ADRs for required and recommended fields
+- **Statistics** - Analyze your ADR collection with detailed breakdowns
+- **Lenient parsing** - Gracefully handles non-standard status values with warnings
 
 ## Installation
 
-Add this to your `Cargo.toml`:
-
-```toml
-[dependencies]
-{{crate_name}} = "0.1"
-```
-
-Or use cargo add:
+### From crates.io
 
 ```bash
-cargo add {{crate_name}}
+cargo install adrscope
+```
+
+### From source
+
+```bash
+git clone https://github.com/zircote/adrscope.git
+cd adrscope
+make install
 ```
 
 ## Quick Start
 
-```rust
-use {{crate_name}}::{add, divide, Config};
+```bash
+# Generate an HTML viewer from ADRs in docs/decisions
+adrscope generate -i docs/decisions -o adr-viewer.html
 
-fn main() -> Result<(), {{crate_name}}::Error> {
-    // Basic arithmetic
-    let sum = add(2, 3);
-    println!("2 + 3 = {}", sum);
+# Validate ADRs (useful for CI/CD)
+adrscope validate -i docs/decisions --strict
 
-    // Safe division with error handling
-    let quotient = divide(10, 2)?;
-    println!("10 / 2 = {}", quotient);
+# Show statistics
+adrscope stats -i docs/decisions
 
-    // Using configuration builder
-    let config = Config::new()
-        .with_verbose(true)
-        .with_max_retries(5);
-
-    Ok(())
-}
+# Generate GitHub Wiki pages
+adrscope wiki -i docs/decisions -o wiki/
 ```
 
-## API Overview
+## Commands
 
-### Functions
+| Command | Description |
+|---------|-------------|
+| `generate` | Generate self-contained HTML viewer |
+| `validate` | Validate ADRs against rules |
+| `stats` | Show ADR statistics |
+| `wiki` | Generate GitHub Wiki pages |
 
-| Function | Description |
-|----------|-------------|
-| `add(a, b)` | Adds two numbers |
-| `divide(a, b)` | Divides with error handling |
+### Generate Options
 
-### Types
+```bash
+adrscope generate [OPTIONS]
 
-| Type | Description |
-|------|-------------|
-| `Config` | Configuration with builder pattern |
-| `Error` | Error type for operations |
-| `Result<T>` | Type alias for `Result<T, Error>` |
+Options:
+  -i, --input <DIR>     Input directory [default: docs/decisions]
+  -o, --output <FILE>   Output HTML file [default: adr-viewer.html]
+  -p, --pattern <GLOB>  File pattern [default: **/*.md]
+  -t, --theme <THEME>   Theme: light, dark, system [default: system]
+  -v, --verbose         Enable verbose output
+```
+
+### Validate Options
+
+```bash
+adrscope validate [OPTIONS]
+
+Options:
+  -i, --input <DIR>     Input directory [default: docs/decisions]
+  -p, --pattern <GLOB>  File pattern [default: **/*.md]
+  --strict              Fail on warnings (for CI/CD)
+  --json                Output as JSON
+  -v, --verbose         Enable verbose output
+```
+
+## ADR Format
+
+ADRScope expects ADRs with YAML frontmatter following the structured-MADR format:
+
+```markdown
+---
+title: Use PostgreSQL for Data Storage
+description: Decision to use PostgreSQL as our primary database
+status: accepted
+category: architecture
+tags:
+  - database
+  - postgresql
+created: 2025-01-15
+author: Architecture Team
+related:
+  - adr-0001.md
+  - adr-0003.md
+---
+
+## Context
+
+[Describe the context and problem...]
+
+## Decision
+
+[Describe the decision...]
+
+## Consequences
+
+[Describe the consequences...]
+```
+
+### Supported Status Values
+
+| Status | Description |
+|--------|-------------|
+| `proposed` | Under discussion (default) |
+| `accepted` | Approved and in effect |
+| `deprecated` | Should not be used for new work |
+| `superseded` | Replaced by another ADR |
+
+Unknown status values are handled gracefully with a warning.
+
+## Library Usage
+
+```rust
+use adrscope::application::{GenerateOptions, GenerateUseCase};
+use adrscope::infrastructure::fs::RealFileSystem;
+
+let fs = RealFileSystem::new();
+let use_case = GenerateUseCase::new(fs);
+let options = GenerateOptions::new("docs/decisions")
+    .with_output("adr-viewer.html");
+
+let result = use_case.execute(&options)?;
+println!("Generated viewer with {} ADRs", result.adr_count);
+```
 
 ## Development
 
 ### Prerequisites
 
-- Rust 1.80+ (2024 edition)
+- Rust 1.85+ (2024 edition)
 - [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) for supply chain security
 
-### Setup
+### Build Commands
 
 ```bash
-# Clone the repository
-git clone https://github.com/zircote/{{crate_name}}.git
-cd {{crate_name}}
-
-# Build
-cargo build
-
-# Run tests
-cargo test
-
-# Run linting
-cargo clippy --all-targets --all-features
-
-# Format code
-cargo fmt
-
-# Check supply chain security
-cargo deny check
-
-# Generate documentation
-cargo doc --open
-```
-
-### Project Structure
-
-```
-src/
-├── lib.rs           # Library entry point
-├── main.rs          # Binary entry point
-└── ...              # Additional modules
-
-tests/
-└── integration_test.rs
-
-Cargo.toml           # Project manifest
-clippy.toml          # Clippy configuration
-rustfmt.toml         # Formatter configuration
-deny.toml            # cargo-deny configuration
-CLAUDE.md            # AI assistant instructions
+make build      # Build debug binary
+make release    # Build optimized binary
+make test       # Run all tests
+make lint       # Run clippy linter
+make fmt        # Format code
+make check      # Quick check (fmt + lint + test)
+make ci         # Full CI pipeline
+make install    # Install to ~/.cargo/bin
 ```
 
 ### Code Quality
 
-This project maintains high code quality standards:
-
 - **Linting**: clippy with pedantic and nursery lints
-- **Formatting**: rustfmt with custom configuration
-- **Testing**: Unit tests, integration tests, and property-based tests
-- **Documentation**: All public APIs documented with examples
+- **Safety**: `#![forbid(unsafe_code)]`
+- **Testing**: 180+ tests with 95%+ coverage
 - **Supply Chain**: cargo-deny for dependency auditing
-- **CI/CD**: GitHub Actions for automated testing
-
-### Running Checks
-
-```bash
-# Run all checks
-cargo fmt -- --check && \
-cargo clippy --all-targets --all-features -- -D warnings && \
-cargo test && \
-cargo doc --no-deps && \
-cargo deny check
-
-# Run with MIRI for undefined behavior detection
-cargo +nightly miri test
-```
 
 ## MSRV Policy
 
-The Minimum Supported Rust Version (MSRV) is **1.80**. Increasing the MSRV is considered a minor breaking change.
+The Minimum Supported Rust Version (MSRV) is **1.85**. Increasing the MSRV is considered a minor breaking change.
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run the test suite (`cargo test`)
-5. Run linting (`cargo clippy --all-targets --all-features`)
-6. Format code (`cargo fmt`)
-7. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-8. Push to the branch (`git push origin feature/amazing-feature`)
-9. Open a Pull Request
-
-Please ensure your PR:
-- Passes all CI checks
-- Includes tests for new functionality
-- Updates documentation as needed
-- Follows the existing code style
-- Does not introduce unsafe code without justification
+3. Run checks (`make check`)
+4. Commit with conventional commits (`git commit -m 'feat: add feature'`)
+5. Push and open a Pull Request
 
 ## License
 
@@ -180,6 +199,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- [The Rust Programming Language](https://www.rust-lang.org/)
-- [Cargo](https://doc.rust-lang.org/cargo/)
-- [clippy](https://github.com/rust-lang/rust-clippy)
+- [MADR](https://adr.github.io/madr/) - Markdown ADR format
+- [ADR GitHub Organization](https://adr.github.io/) - ADR resources and tools

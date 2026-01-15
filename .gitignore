@@ -106,3 +106,10 @@ junit.xml
 
 # Project specific
 *.local
+
+# Generated ADR viewer output
+adr.html
+adr-viewer.html
+
+# Local plugin configuration (user-specific)
+.claude/*.local.md

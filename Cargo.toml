@@ -1,57 +1,61 @@
 [package]
-name = "{{crate_name}}"
+name = "adrscope"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A Rust crate"
+description = "A lightweight, zero-dependency visualization tool for Architecture Decision Records"
 license = "MIT"
-authors = ["Your Name <you@example.com>"]
-repository = "https://github.com/zircote/{{crate_name}}"
-homepage = "https://github.com/zircote/{{crate_name}}"
-documentation = "https://docs.rs/{{crate_name}}"
+authors = ["Robert Allen <zircote@gmail.com>"]
+repository = "https://github.com/zircote/adrscope"
+homepage = "https://github.com/zircote/adrscope"
+documentation = "https://docs.rs/adrscope"
 readme = "README.md"
-keywords = []
-categories = []
+keywords = ["adr", "architecture", "documentation", "cli", "madr"]
+categories = ["command-line-utilities", "development-tools"]
 
 [lib]
-name = "{{crate_name}}"
+name = "adrscope"
 path = "src/lib.rs"
 
 [[bin]]
-name = "{{crate_name}}"
+name = "adrscope"
 path = "src/main.rs"
 
 [dependencies]
-# Core dependencies
-thiserror = "2.0.17"
-anyhow = "1.0.100"
+# CLI framework
+clap = { version = "4", features = ["derive"] }
 
-# Async runtime (uncomment if needed)
-# tokio = { version = "1.0", features = ["full"] }
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
 
-# Serialization (uncomment if needed)
-# serde = { version = "1.0", features = ["derive"] }
-# serde_json = "1.0"
+# Templating
+askama = "0.12"
 
-# Logging (uncomment if needed)
-# tracing = "0.1"
-# tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Markdown parsing
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+
+# Error handling
+thiserror = "2"
+
+# Date/time handling
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+
+# File globbing
+glob = "0.3"
 
 [dev-dependencies]
 # Testing
-proptest = "1.9.0"
-test-case = "3.3.1"
-
-# Async testing (uncomment if using tokio)
-# tokio-test = "0.4"
+proptest = "1"
+tempfile = "3"
+pretty_assertions = "1"
 
 [profile.dev]
-# Faster compile times during development
 debug = 1
 opt-level = 0
 
 [profile.release]
-# Optimize for size and speed
 opt-level = 3
 lto = "thin"
 codegen-units = 1
@@ -64,13 +68,10 @@ debug = true
 strip = false
 
 [lints.rust]
-# Enable additional warnings
-unsafe_code = "warn"
+unsafe_code = "forbid"
 missing_docs = "warn"
-rust_2024_compatibility = "warn"
 
 [lints.clippy]
-# Deny all warnings in CI
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
@@ -79,21 +80,32 @@ cargo = { level = "warn", priority = -1 }
 # Specific lints to deny
 unwrap_used = "deny"
 expect_used = "deny"
-panic = "deny"
 todo = "deny"
 unimplemented = "deny"
 dbg_macro = "deny"
-print_stdout = "deny"
-print_stderr = "deny"
 
-# Allow in certain contexts (can be overridden per-module)
+# Allow for CLI output
+print_stdout = "allow"
+print_stderr = "allow"
+
+# Allow in tests
+panic = "allow"
+
+# Allow in certain contexts
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 must_use_candidate = "allow"
 redundant_pub_crate = "allow"
+doc_markdown = "allow"
+double_must_use = "allow"
+uninlined_format_args = "allow"
+single_char_pattern = "allow"
+unnecessary_sort_by = "allow"
+missing_const_for_fn = "allow"
+significant_drop_tightening = "allow"
+missing_const_for_thread_local = "allow"
 
 [features]
 default = []
-# Add feature flags here
-# full = ["feature1", "feature2"]
+testing = []
