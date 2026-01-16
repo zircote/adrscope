@@ -1,0 +1,266 @@
+name: 'ADRScope'
+description: 'Validate, visualize, and manage Architecture Decision Records (ADRs) with rich GitHub integration'
+author: 'zircote'
+
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  command:
+    description: 'ADRScope command to run: validate, generate, stats, or wiki'
+    required: true
+    default: 'validate'
+  input-dir:
+    description: 'Directory containing ADR files'
+    required: false
+    default: 'docs/decisions'
+  output:
+    description: 'Output file path (for generate command) or directory (for wiki command)'
+    required: false
+    default: ''
+  pattern:
+    description: 'Glob pattern for finding ADR files'
+    required: false
+    default: '**/*.md'
+  strict:
+    description: 'Treat warnings as errors in validate command'
+    required: false
+    default: 'false'
+  format:
+    description: 'Output format for stats command: text, json, or markdown'
+    required: false
+    default: 'text'
+  theme:
+    description: 'Theme for generate command: light, dark, or system'
+    required: false
+    default: 'system'
+  version:
+    description: 'ADRScope version to use (e.g., "0.1.0" or "latest")'
+    required: false
+    default: 'latest'
+  github-token:
+    description: 'GitHub token for downloading releases (defaults to GITHUB_TOKEN)'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  passed:
+    description: 'Whether validation passed (true/false)'
+    value: ${{ steps.run-adrscope.outputs.passed }}
+  error-count:
+    description: 'Number of validation errors found'
+    value: ${{ steps.run-adrscope.outputs.error_count }}
+  warning-count:
+    description: 'Number of validation warnings found'
+    value: ${{ steps.run-adrscope.outputs.warning_count }}
+  output-file:
+    description: 'Path to generated output file (for generate command)'
+    value: ${{ steps.run-adrscope.outputs.output_file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        case "${{ runner.os }}" in
+          Linux)
+            echo "os=unknown-linux-gnu" >> $GITHUB_OUTPUT
+            ;;
+          macOS)
+            echo "os=apple-darwin" >> $GITHUB_OUTPUT
+            ;;
+          Windows)
+            echo "os=pc-windows-msvc" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "::error::Unsupported platform: ${{ runner.os }}"
+            exit 1
+            ;;
+        esac
+
+        case "${{ runner.arch }}" in
+          X64)
+            echo "arch=x86_64" >> $GITHUB_OUTPUT
+            ;;
+          ARM64)
+            echo "arch=aarch64" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "::error::Unsupported architecture: ${{ runner.arch }}"
+            exit 1
+            ;;
+        esac
+
+    - name: Get latest version
+      id: version
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          VERSION=$(gh api repos/zircote/adrscope/releases/latest --jq '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+          if [ -z "$VERSION" ]; then
+            echo "::error::Failed to fetch latest version. Check that releases exist."
+            exit 1
+          fi
+        else
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Using ADRScope version: $VERSION"
+
+    - name: Download and install ADRScope (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        ARCH="${{ steps.platform.outputs.arch }}"
+        OS="${{ steps.platform.outputs.os }}"
+
+        ARCHIVE_NAME="adrscope-${VERSION}-${ARCH}-${OS}.tar.gz"
+        DOWNLOAD_URL="https://github.com/zircote/adrscope/releases/download/v${VERSION}/${ARCHIVE_NAME}"
+
+        echo "Downloading ADRScope from: ${DOWNLOAD_URL}"
+
+        INSTALL_DIR="${RUNNER_TEMP}/adrscope"
+        mkdir -p "$INSTALL_DIR"
+
+        if ! curl -fsSL -o "/tmp/${ARCHIVE_NAME}" "$DOWNLOAD_URL"; then
+          echo "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
+          exit 1
+        fi
+
+        tar -xzf "/tmp/${ARCHIVE_NAME}" -C "$INSTALL_DIR"
+        chmod +x "${INSTALL_DIR}/adrscope"
+        echo "${INSTALL_DIR}" >> $GITHUB_PATH
+
+        echo "ADRScope installed successfully"
+        "${INSTALL_DIR}/adrscope" --version
+
+    - name: Download and install ADRScope (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        $VERSION = "${{ steps.version.outputs.version }}"
+        $ARCH = "${{ steps.platform.outputs.arch }}"
+        $OS = "${{ steps.platform.outputs.os }}"
+
+        $ARCHIVE_NAME = "adrscope-${VERSION}-${ARCH}-${OS}.zip"
+        $DOWNLOAD_URL = "https://github.com/zircote/adrscope/releases/download/v${VERSION}/${ARCHIVE_NAME}"
+
+        Write-Host "Downloading ADRScope from: ${DOWNLOAD_URL}"
+
+        $INSTALL_DIR = "$env:RUNNER_TEMP\adrscope"
+        New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
+
+        try {
+          Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile "$env:TEMP\$ARCHIVE_NAME"
+        } catch {
+          Write-Host "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
+          exit 1
+        }
+
+        Expand-Archive -Path "$env:TEMP\$ARCHIVE_NAME" -DestinationPath $INSTALL_DIR -Force
+        Add-Content -Path $env:GITHUB_PATH -Value $INSTALL_DIR
+
+        Write-Host "ADRScope installed successfully"
+        & "$INSTALL_DIR\adrscope.exe" --version
+
+    - name: Add problem matcher
+      shell: bash
+      run: |
+        echo "::add-matcher::${{ github.action_path }}/problem-matcher.json"
+
+    - name: Run ADRScope
+      id: run-adrscope
+      shell: bash
+      run: |
+        set +e
+
+        COMMAND="${{ inputs.command }}"
+        INPUT_DIR="${{ inputs.input-dir }}"
+        OUTPUT="${{ inputs.output }}"
+        PATTERN="${{ inputs.pattern }}"
+        STRICT="${{ inputs.strict }}"
+        FORMAT="${{ inputs.format }}"
+        THEME="${{ inputs.theme }}"
+
+        # Build command arguments
+        ARGS=("$COMMAND")
+        ARGS+=("--input" "$INPUT_DIR")
+        ARGS+=("--pattern" "$PATTERN")
+
+        case "$COMMAND" in
+          validate)
+            if [ "$STRICT" = "true" ]; then
+              ARGS+=("--strict")
+            fi
+            ;;
+          generate)
+            if [ -n "$OUTPUT" ]; then
+              ARGS+=("--output" "$OUTPUT")
+            else
+              OUTPUT="adr-viewer.html"
+              ARGS+=("--output" "$OUTPUT")
+            fi
+            ARGS+=("--theme" "$THEME")
+            ;;
+          stats)
+            ARGS+=("--format" "$FORMAT")
+            ;;
+          wiki)
+            if [ -n "$OUTPUT" ]; then
+              ARGS+=("--output" "$OUTPUT")
+            else
+              OUTPUT="wiki/"
+              ARGS+=("--output" "$OUTPUT")
+            fi
+            ;;
+          *)
+            echo "::error::Unknown command: $COMMAND"
+            exit 1
+            ;;
+        esac
+
+        echo "Running: adrscope ${ARGS[*]}"
+
+        # Capture output for parsing
+        OUTPUT_FILE=$(mktemp)
+        adrscope "${ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE"
+        EXIT_CODE=${PIPESTATUS[0]}
+
+        # Parse output for counts
+        ERROR_COUNT=$(grep -c "^ERROR:" "$OUTPUT_FILE" 2>/dev/null || echo "0")
+        WARNING_COUNT=$(grep -c "^WARNING:" "$OUTPUT_FILE" 2>/dev/null || echo "0")
+
+        # Set outputs
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "passed=true" >> $GITHUB_OUTPUT
+        else
+          echo "passed=false" >> $GITHUB_OUTPUT
+        fi
+
+        echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
+        echo "warning_count=$WARNING_COUNT" >> $GITHUB_OUTPUT
+
+        if [ "$COMMAND" = "generate" ] || [ "$COMMAND" = "wiki" ]; then
+          echo "output_file=$OUTPUT" >> $GITHUB_OUTPUT
+        fi
+
+        rm -f "$OUTPUT_FILE"
+
+        exit $EXIT_CODE
+
+    - name: Remove problem matcher
+      if: always()
+      shell: bash
+      run: |
+        echo "::remove-matcher owner=adrscope::"
