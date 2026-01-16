@@ -1,6 +1,7 @@
 # ADRScope
 
 [![CI](https://github.com/zircote/adrscope/actions/workflows/ci.yml/badge.svg)](https://github.com/zircote/adrscope/actions/workflows/ci.yml)
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-ADRScope-blue?logo=github)](https://github.com/marketplace/actions/adrscope)
 [![Crates.io](https://img.shields.io/crates/v/adrscope.svg?logo=rust&logoColor=white)](https://crates.io/crates/adrscope)
 [![Documentation](https://docs.rs/adrscope/badge.svg)](https://docs.rs/adrscope)
 [![Rust Version](https://img.shields.io/badge/rust-1.85%2B-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -10,6 +11,60 @@
 A lightweight visualization tool for Architecture Decision Records (ADRs).
 
 ADRScope generates self-contained HTML viewers for ADRs following the [structured-MADR](https://adr.github.io/madr/) format. It supports faceted search, relationship graphs, and GitHub Wiki generation.
+
+## GitHub Action
+
+Use ADRScope in your CI/CD pipelines to validate ADRs and generate documentation automatically.
+
+```yaml
+- name: Validate ADRs
+  uses: zircote/adrscope@v0
+  with:
+    command: validate
+    input-dir: docs/decisions
+    strict: true
+```
+
+### Action Features
+
+- **All commands available**: `validate`, `generate`, `stats`, `wiki`
+- **Inline annotations**: Validation errors appear directly in PR diffs
+- **Cross-platform**: Linux, macOS, Windows (x86_64, ARM64)
+- **Fast startup**: Pre-built binaries (~2-5 seconds)
+
+### Example Workflow
+
+```yaml
+name: ADR CI
+on:
+  pull_request:
+    paths: ['docs/decisions/**']
+
+jobs:
+  adr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ADRs
+        uses: zircote/adrscope@v0
+        with:
+          command: validate
+          strict: true
+
+      - name: Generate Viewer
+        uses: zircote/adrscope@v0
+        with:
+          command: generate
+          output: adr-viewer.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adr-viewer
+          path: adr-viewer.html
+```
+
+📖 **[Full Action Documentation →](ACTION.md)**
 
 ## Screenshots
 
@@ -38,6 +93,22 @@ ADRScope generates self-contained HTML viewers for ADRs following the [structure
 - **Lenient parsing** - Gracefully handles non-standard status values with warnings
 
 ## Installation
+
+### GitHub Action (Recommended for CI/CD)
+
+```yaml
+- uses: zircote/adrscope@v0
+  with:
+    command: validate
+```
+
+See [ACTION.md](ACTION.md) for full documentation.
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew install zircote/tap/adrscope
+```
 
 ### From crates.io
 
@@ -71,6 +142,7 @@ adrscope wiki -i docs/decisions -o wiki/
 
 ## Documentation
 
+- [GitHub Action Documentation](ACTION.md)
 - [Getting Started Guide](docs/getting-started.md)
 - [User Guide](docs/user-guide.md)
 - [Configuration Reference](docs/configuration.md)
