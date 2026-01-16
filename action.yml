@@ -32,9 +32,9 @@ inputs:
     required: false
     default: 'text'
   theme:
-    description: 'Theme for generate command: light, dark, or system'
+    description: 'Theme for generate command: light, dark, or auto'
     required: false
-    default: 'system'
+    default: 'auto'
   version:
     description: 'ADRScope version to use (e.g., "0.1.0" or "latest")'
     required: false

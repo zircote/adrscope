@@ -55,7 +55,7 @@ jobs:
     command: generate
     input-dir: docs/decisions
     output: adr-viewer.html
-    theme: system
+    theme: auto
 
 - name: Upload Viewer
   uses: actions/upload-artifact@v4
@@ -94,7 +94,7 @@ jobs:
 | `pattern` | Glob pattern for ADR files | `**/*.md` |
 | `strict` | Treat warnings as errors (validate only) | `false` |
 | `format` | Output format for stats: `text`, `json`, `markdown` | `text` |
-| `theme` | Theme for generate: `light`, `dark`, `system` | `system` |
+| `theme` | Theme for generate: `light`, `dark`, `auto` | `auto` |
 | `version` | ADRScope version to use | `latest` |
 | `github-token` | Token for downloading releases | `${{ github.token }}` |
 

@@ -48,7 +48,7 @@ jobs:
           command: generate
           input-dir: docs/decisions
           output: adr-viewer.html
-          theme: system
+          theme: auto
 
       - name: Determine version
         id: version
