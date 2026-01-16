@@ -87,7 +87,7 @@ adrscope validate --strict
 
 ### Validation Rules
 
-ADRScope validates against the structured-MADR format:
+ADRScope validates against the [zircote/structured-madr](https://github.com/zircote/structured-madr) format:
 
 **Required Fields** (always errors):
 

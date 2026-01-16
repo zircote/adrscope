@@ -64,6 +64,96 @@ jobs:
           path: adr-viewer.html
 ```
 
+### Publishing to GitHub Wiki
+
+ADRScope can generate wiki pages and automatically publish them to your repository's GitHub Wiki.
+
+**Generated Wiki Pages:**
+- `ADR-Index.md` - Main index with table of all ADRs
+- `ADR-By-Status.md` - ADRs grouped by status (proposed, accepted, deprecated, superseded)
+- `ADR-By-Category.md` - ADRs grouped by category
+- `ADR-Timeline.md` - Chronological timeline view
+- `ADR-Statistics.md` - Summary statistics and breakdowns
+
+**Complete Wiki Deployment Workflow:**
+
+```yaml
+name: Deploy ADRs to Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/decisions/**'
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Wiki Pages
+        uses: zircote/adrscope@v0
+        with:
+          command: wiki
+          input-dir: docs/decisions
+          output: wiki/
+
+      - name: Deploy to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          path: wiki/
+```
+
+**With Validation:**
+
+Validate ADRs before deploying to wiki:
+
+```yaml
+name: Deploy ADRs to Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/decisions/**'
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ADRs
+        uses: zircote/adrscope@v0
+        with:
+          command: validate
+          strict: true
+
+      - name: Generate Wiki Pages
+        uses: zircote/adrscope@v0
+        with:
+          command: wiki
+          output: wiki/
+
+      - name: Deploy to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          path: wiki/
+```
+
+**Wiki Command Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `input-dir` | Directory containing ADR files | `docs/decisions` |
+| `output` | Output directory for wiki files | `wiki/` |
+| `pattern` | Glob pattern for ADR files | `**/*.md` |
+
 📖 **[Full Action Documentation →](ACTION.md)**
 
 ## Screenshots
@@ -185,7 +275,7 @@ Options:
 
 ## ADR Format
 
-ADRScope expects ADRs with YAML frontmatter following the structured-MADR format:
+ADRScope expects ADRs in the [zircote/structured-madr](https://github.com/zircote/structured-madr) format:
 
 ```markdown
 ---

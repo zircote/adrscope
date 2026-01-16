@@ -33,9 +33,9 @@ ADRScope needs a standardized format for its own Architecture Decision Records. 
 
 ## Decision
 
-We will use the **Structured MADR** format for all ADRs in this project.
+We will use the **[zircote/structured-madr](https://github.com/zircote/structured-madr)** format for all ADRs in this project.
 
-Structured MADR extends the standard MADR format with:
+[Structured MADR](https://github.com/zircote/structured-madr) extends the standard MADR format with:
 
 - YAML frontmatter for machine-readable metadata
 - Required fields: `title`, `status`

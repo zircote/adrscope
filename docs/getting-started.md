@@ -33,7 +33,7 @@ adrscope --version
 
 ### 1. Prepare Your ADRs
 
-ADRScope expects ADRs with YAML frontmatter. Create a directory for your decisions:
+ADRScope expects ADRs in the [zircote/structured-madr](https://github.com/zircote/structured-madr) format. Create a directory for your decisions:
 
 ```bash
 mkdir -p docs/decisions

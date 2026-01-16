@@ -34,7 +34,7 @@ This directory contains Architecture Decision Records (ADRs) for ADRScope.
 
 ## Creating New ADRs
 
-Use the Claude Code `/adr-new` command or create manually following the structured-MADR template.
+Use the Claude Code `/adr-new` command or create manually following the [zircote/structured-madr](https://github.com/zircote/structured-madr) template.
 
 ## Viewing ADRs
 

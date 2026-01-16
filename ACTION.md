@@ -84,6 +84,58 @@ jobs:
     output: wiki/
 ```
 
+### Deploy to GitHub Wiki
+
+Generate wiki pages and publish them to your repository's GitHub Wiki:
+
+```yaml
+name: Deploy ADRs to Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/decisions/**'
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ADRs
+        uses: zircote/adrscope@v0
+        with:
+          command: validate
+          strict: true
+
+      - name: Generate Wiki Pages
+        uses: zircote/adrscope@v0
+        with:
+          command: wiki
+          input-dir: docs/decisions
+          output: wiki/
+
+      - name: Deploy to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          path: wiki/
+```
+
+**Generated Wiki Files:**
+- `ADR-Index.md` - Table of all ADRs with ID, title, status, category, and date
+- `ADR-By-Status.md` - ADRs grouped by status (proposed, accepted, deprecated, superseded)
+- `ADR-By-Category.md` - ADRs organized by category
+- `ADR-Timeline.md` - Chronological timeline of decisions
+- `ADR-Statistics.md` - Summary statistics and breakdowns
+- Individual ADR files are copied to the output directory
+
+**Prerequisites:**
+1. Enable the Wiki for your repository (Settings > Features > Wikis)
+2. Create at least one wiki page manually (this initializes the wiki repository)
+
 ## Inputs
 
 | Input | Description | Default |
@@ -118,7 +170,7 @@ docs/decisions/adr-0001.md:1
 
 ## ADR Format
 
-ADRScope expects ADRs with YAML frontmatter:
+ADRScope expects ADRs in the [zircote/structured-madr](https://github.com/zircote/structured-madr) format:
 
 ```markdown
 ---

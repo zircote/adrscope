@@ -219,7 +219,7 @@ The wiki generator creates:
 
 ## ADR Format
 
-ADRScope uses the structured-MADR format with YAML frontmatter.
+ADRScope uses the [zircote/structured-madr](https://github.com/zircote/structured-madr) format with YAML frontmatter.
 
 ### Required Structure
 
