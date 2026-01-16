@@ -12,6 +12,8 @@ A lightweight visualization tool for Architecture Decision Records (ADRs).
 
 ADRScope generates self-contained HTML viewers for ADRs following the [structured-MADR](https://github.com/zircote/structured-madr) format. It supports faceted search, relationship graphs, and GitHub Wiki generation.
 
+![ADRScope Demo](docs/_assets/adr-demo.gif)
+
 ## GitHub Action
 
 Use ADRScope in your CI/CD pipelines to validate ADRs and generate documentation automatically.
