@@ -263,4 +263,5 @@ runs:
       if: always()
       shell: bash
       run: |
-        echo "::remove-matcher owner=adrscope::"
+        echo "::remove-matcher owner=adrscope-error::"
+        echo "::remove-matcher owner=adrscope-warning::"

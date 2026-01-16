@@ -1,7 +1,7 @@
 {
   "problemMatcher": [
     {
-      "owner": "adrscope",
+      "owner": "adrscope-error",
       "severity": "error",
       "pattern": [
         {
@@ -14,7 +14,7 @@
       ]
     },
     {
-      "owner": "adrscope",
+      "owner": "adrscope-warning",
       "severity": "warning",
       "pattern": [
         {
