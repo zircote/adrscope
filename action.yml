@@ -237,9 +237,9 @@ runs:
         adrscope "${ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
 
-        # Parse output for counts
-        ERROR_COUNT=$(grep -c "^ERROR:" "$OUTPUT_FILE" 2>/dev/null || echo "0")
-        WARNING_COUNT=$(grep -c "^WARNING:" "$OUTPUT_FILE" 2>/dev/null || echo "0")
+        # Parse output for counts (grep -c returns 1 if no matches, handle that)
+        ERROR_COUNT=$(grep -c "^ERROR:" "$OUTPUT_FILE" 2>/dev/null) || ERROR_COUNT=0
+        WARNING_COUNT=$(grep -c "^WARNING:" "$OUTPUT_FILE" 2>/dev/null) || WARNING_COUNT=0
 
         # Set outputs
         if [ $EXIT_CODE -eq 0 ]; then
