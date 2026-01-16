@@ -14,7 +14,7 @@ Validate, visualize, and manage Architecture Decision Records (ADRs) in your Git
 
 ```yaml
 - name: Validate ADRs
-  uses: zircote/adrscope/.github/actions/adrscope@v0
+  uses: zircote/adrscope@v0
   with:
     command: validate
     strict: true
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate ADRs
-        uses: zircote/adrscope/.github/actions/adrscope@v0
+        uses: zircote/adrscope@v0
         with:
           command: validate
           input-dir: docs/decisions
@@ -50,7 +50,7 @@ jobs:
 
 ```yaml
 - name: Generate ADR Viewer
-  uses: zircote/adrscope/.github/actions/adrscope@v0
+  uses: zircote/adrscope@v0
   with:
     command: generate
     input-dir: docs/decisions
@@ -68,7 +68,7 @@ jobs:
 
 ```yaml
 - name: ADR Statistics
-  uses: zircote/adrscope/.github/actions/adrscope@v0
+  uses: zircote/adrscope@v0
   with:
     command: stats
     format: markdown
@@ -78,7 +78,7 @@ jobs:
 
 ```yaml
 - name: Generate Wiki
-  uses: zircote/adrscope/.github/actions/adrscope@v0
+  uses: zircote/adrscope@v0
   with:
     command: wiki
     output: wiki/
@@ -183,14 +183,14 @@ jobs:
 
       - name: Validate ADRs
         id: validate
-        uses: zircote/adrscope/.github/actions/adrscope@v0
+        uses: zircote/adrscope@v0
         with:
           command: validate
           strict: true
 
       - name: Generate Viewer
         if: github.ref == 'refs/heads/main'
-        uses: zircote/adrscope/.github/actions/adrscope@v0
+        uses: zircote/adrscope@v0
         with:
           command: generate
           output: adr-viewer.html
@@ -213,7 +213,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: zircote/adrscope/.github/actions/adrscope@v0
+      - uses: zircote/adrscope@v0
         with:
           command: validate
 ```
