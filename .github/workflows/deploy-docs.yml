@@ -1,0 +1,70 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "docs/**"
+      - "Cargo.toml"
+      - ".github/workflows/deploy-docs.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Documentation version label"
+        required: false
+        default: "latest"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build API documentation
+        run: |
+          cargo doc --no-deps --all-features
+          # Create redirect to main crate docs
+          echo '<meta http-equiv="refresh" content="0; url=adrscope/index.html">' > target/doc/index.html
+
+      - name: Generate ADR viewer
+        uses: zircote/adrscope@v0
+        with:
+          command: generate
+          input-dir: docs/decisions
+          output: adr-viewer.html
+          theme: system
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            # Release tag names are controlled by repository admins
+            echo "version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Workflow dispatch inputs are controlled by users with write access
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy documentation
+        uses: zircote/zircote.github.io/.github/actions/docs-deploy@main
+        with:
+          project-id: adrscope
+          docs-path: target/doc
+          version: ${{ steps.version.outputs.version }}
+          include-adrs: adr-viewer.html
+        env:
+          DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
