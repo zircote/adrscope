@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-15
+
 ### Added
 
 - **[GitHub Action]**: Reusable composite action for CI/CD integration
@@ -70,5 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial release of ADRScope.
 
-[Unreleased]: https://github.com/zircote/adrscope/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zircote/adrscope/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/zircote/adrscope/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zircote/adrscope/releases/tag/v0.1.0
