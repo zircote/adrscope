@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[GitHub Action]**: Reusable composite action for CI/CD integration
+  - All four commands exposed as action inputs (validate, generate, stats, wiki)
+  - Problem matcher for inline PR annotations on validation errors/warnings
+  - Cross-platform support (Linux, macOS, Windows on x86_64/aarch64)
+  - Version pinning support with `latest` default
+  - Binary download from GitHub Releases for fast startup (~2-5s)
+- **[Release Workflow]**: Automated multi-platform binary builds
+  - Builds for 5 targets: Linux (x86_64, aarch64), macOS (x86_64, aarch64), Windows (x86_64)
+  - Creates tar.gz archives for Unix, zip for Windows
+  - SHA256 checksums generation
+  - Automatic GitHub Release creation on tag push
+- **[Homebrew]**: Formula for zircote/tap
+  - macOS support (Intel and Apple Silicon)
+  - Linux support (x86_64 and aarch64)
 - **[CLI]**: Command-line interface with subcommands for generate, validate, stats, and wiki
 - **[Generate]**: Self-contained HTML viewer generation with embedded CSS/JS
   - Faceted search and filtering by status, category, tags, author, and project
