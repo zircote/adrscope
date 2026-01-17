@@ -95,7 +95,7 @@ Use the filter panel on the left to narrow down ADRs by:
 
 | Filter Panel | Filtered Results |
 |:------------:|:----------------:|
-| ![Filters](_assets/filters.png) | ![Filtered View](_assets/view-1.png) |
+| ![Filters](../_assets/filters.png) | ![Filtered View](../_assets/view-1.png) |
 
 ### Viewing ADR Details
 
@@ -103,7 +103,7 @@ Click any ADR to see its full content and relationship graph:
 
 | ADR Content View | Category Breakdown |
 |:----------------:|:------------------:|
-| ![ADR View](_assets/view-0.png) | ![Categories](_assets/categories.png) |
+| ![ADR View](../_assets/view-0.png) | ![Categories](../_assets/categories.png) |
 
 ## Next Steps
 

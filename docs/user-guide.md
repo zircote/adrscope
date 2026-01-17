@@ -24,9 +24,10 @@ adrscope generate [OPTIONS]
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
 | `--input` | `-i` | `docs/decisions` | Input directory containing ADRs |
-| `--output` | `-o` | `adr-viewer.html` | Output HTML file path |
+| `--output` | `-o` | `adrs.html` | Output HTML file path |
 | `--pattern` | `-p` | `**/*.md` | Glob pattern for finding ADR files |
-| `--theme` | `-t` | `system` | Theme: `light`, `dark`, or `system` |
+| `--title` | `-t` | `Architecture Decision Records` | Page title |
+| `--theme` | - | `auto` | Theme: `light`, `dark`, or `auto` |
 | `--verbose` | `-v` | - | Enable verbose output |
 
 ### Examples
@@ -64,7 +65,7 @@ The generated HTML file is completely self-contained with embedded CSS and JavaS
 - Shared via email or file transfer
 - Committed to your repository
 
-![ADRScope Main View](_assets/main.png)
+![ADRScope Main View](../_assets/main.png)
 
 ## Validate Command
 
@@ -81,7 +82,6 @@ adrscope validate [OPTIONS]
 | `--input` | `-i` | `docs/decisions` | Input directory containing ADRs |
 | `--pattern` | `-p` | `**/*.md` | Glob pattern for finding ADR files |
 | `--strict` | - | - | Fail on warnings (for CI/CD) |
-| `--json` | - | - | Output results as JSON |
 | `--verbose` | `-v` | - | Enable verbose output |
 
 ### Examples
@@ -96,12 +96,6 @@ Strict mode for CI/CD pipelines:
 
 ```bash
 adrscope validate --strict
-```
-
-JSON output for tooling integration:
-
-```bash
-adrscope validate --json
 ```
 
 ### Validation Rules
@@ -299,7 +293,7 @@ The HTML viewer supports three themes:
 |-------|-------------|
 | `light` | Light background with dark text |
 | `dark` | Dark background with light text |
-| `system` | Follows OS preference (default) |
+| `auto` | Follows OS preference (default) |
 
 Set the theme during generation:
 
@@ -321,13 +315,13 @@ related:
 
 The viewer displays these as an interactive graph showing how decisions connect:
 
-![ADR View with Graph](_assets/view-0.png)
+![ADR View with Graph](../_assets/view-0.png)
 
 ## Filtering and Search
 
 The faceted search panel allows filtering by multiple criteria:
 
-![Filter Panel](_assets/filters.png)
+![Filter Panel](../_assets/filters.png)
 
 Available filters:
 

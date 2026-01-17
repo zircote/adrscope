@@ -51,14 +51,15 @@ adrscope generate \
 
 ```bash
 adrscope generate \
-  --output build/adr-viewer.html \
+  --output build/adrs.html \
   --theme dark
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--output` | `adr-viewer.html` | Output HTML file path |
-| `--theme` | `system` | Visual theme selection |
+| `--output` | `adrs.html` | Output HTML file path |
+| `--title` | `Architecture Decision Records` | Page title |
+| `--theme` | `auto` | Visual theme selection |
 
 #### Theme Options
 
@@ -66,7 +67,7 @@ adrscope generate \
 |-------|----------|
 | `light` | Light background, dark text |
 | `dark` | Dark background, light text |
-| `system` | Follows operating system preference |
+| `auto` | Follows operating system preference |
 
 ## Validate Configuration
 
@@ -83,7 +84,6 @@ adrscope validate --strict
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--strict` | `false` | Treat warnings as errors |
-| `--json` | `false` | Output as JSON instead of text |
 
 ### Validation Rules
 
@@ -105,30 +105,6 @@ ADRScope validates against the [zircote/structured-madr](https://github.com/zirc
 | `author` | Person or team who made the decision |
 | `category` | Classification (architecture, security, etc.) |
 | `tags` | List of searchable keywords |
-
-### JSON Output Schema
-
-With `--json`, validation results follow this schema:
-
-```json
-{
-  "valid": true,
-  "errors": [],
-  "warnings": [
-    {
-      "file": "adr-0001.md",
-      "field": "description",
-      "message": "Missing recommended field: description"
-    }
-  ],
-  "summary": {
-    "total": 8,
-    "valid": 8,
-    "with_errors": 0,
-    "with_warnings": 3
-  }
-}
-```
 
 ## Stats Configuration
 

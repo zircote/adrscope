@@ -256,9 +256,10 @@ adrscope generate [OPTIONS]
 
 Options:
   -i, --input <DIR>     Input directory [default: docs/decisions]
-  -o, --output <FILE>   Output HTML file [default: adr-viewer.html]
+  -o, --output <FILE>   Output HTML file [default: adrs.html]
   -p, --pattern <GLOB>  File pattern [default: **/*.md]
-  -t, --theme <THEME>   Theme: light, dark, system [default: system]
+  -t, --title <TITLE>   Page title [default: "Architecture Decision Records"]
+      --theme <THEME>   Theme: light, dark, auto [default: auto]
   -v, --verbose         Enable verbose output
 ```
 
@@ -358,7 +359,7 @@ make install    # Install to ~/.cargo/bin
 
 - **Linting**: clippy with pedantic and nursery lints
 - **Safety**: `#![forbid(unsafe_code)]`
-- **Testing**: 180+ tests with 95%+ coverage
+- **Testing**: 170+ tests with 95%+ coverage
 - **Supply Chain**: cargo-deny for dependency auditing
 
 ## MSRV Policy
