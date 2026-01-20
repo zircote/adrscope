@@ -50,7 +50,7 @@ jobs:
           components: clippy
 
       - name: Cache cargo registry
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: |
             ~/.cargo/registry
@@ -80,7 +80,7 @@ jobs:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: |
             ~/.cargo/registry
@@ -108,7 +108,7 @@ jobs:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: |
             ~/.cargo/registry
@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@2e9d707ef49c9b094d45955b60c7e5c0dfedeb14 # v2.66.5
+        uses: taiki-e/install-action@542cebaaed782771e619bd5609d97659d109c492 # v2.66.7
         with:
           tool: cargo-deny
 
@@ -149,7 +149,7 @@ jobs:
           toolchain: "1.85"
 
       - name: Cache cargo registry
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: |
             ~/.cargo/registry
@@ -176,12 +176,12 @@ jobs:
           components: llvm-tools-preview
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@2e9d707ef49c9b094d45955b60c7e5c0dfedeb14 # v2.66.5
+        uses: taiki-e/install-action@542cebaaed782771e619bd5609d97659d109c492 # v2.66.7
         with:
           tool: cargo-llvm-cov
 
       - name: Cache cargo registry
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: |
             ~/.cargo/registry
