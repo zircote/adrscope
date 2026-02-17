@@ -14,7 +14,12 @@ targets = [
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-ignore = []
+ignore = [
+    # RUSTSEC-2026-0009: time crate RFC 2822 parsing stack exhaustion.
+    # Not exploitable here — we only use Date, Rfc3339, and Iso8601 formats.
+    # Patched version (0.3.47) requires Rust 1.88, above our MSRV (1.85).
+    { id = "RUSTSEC-2026-0009", reason = "RFC 2822 parsing not used in this project" },
+]
 
 #==============================================================================
 # Licenses - Allowed and denied licenses
