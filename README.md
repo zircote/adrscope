@@ -238,6 +238,9 @@ adrscope wiki -i docs/decisions -o wiki/
 - [Getting Started Guide](docs/getting-started.md)
 - [User Guide](docs/user-guide.md)
 - [Configuration Reference](docs/configuration.md)
+- [Library API Guide](docs/library-api.md) - Using ADRScope as a Rust library
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [Contributing Guide](CONTRIBUTING.md) - Development workflow and conventions
 - [Architecture Decision Records](docs/decisions/)
 
 ## Commands
@@ -366,35 +369,22 @@ make install    # Install to ~/.cargo/bin
 
 The Minimum Supported Rust Version (MSRV) is **1.85**. Increasing the MSRV is considered a minor breaking change.
 
-## Documentation
-
-Comprehensive documentation is available:
-
-- **[Getting Started Guide](docs/getting-started.md)** - Installation and first steps
-- **[User Guide](docs/user-guide.md)** - Complete command reference
-- **[Configuration Reference](docs/configuration.md)** - All configuration options
-- **[API Reference](docs/api-reference.md)** - Library API documentation
-- **[Architecture](docs/architecture.md)** - System design and structure
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
-- **[Documentation Index](docs/README.md)** - Complete documentation map
-
 ## Contributing
 
-Contributions are welcome! Please read our **[Contributing Guide](CONTRIBUTING.md)** for details on:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
-- Development workflow and branch naming
-- Coding standards and architecture principles
+- Development setup and workflow
+- Code conventions and architecture guidelines
 - Testing requirements
 - Pull request process
 
-Quick start:
+Quick start for contributors:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run checks (`make check`)
-4. Commit with conventional commits (`git commit -m 'feat: add feature'`)
-5. Push and open a Pull Request
+````bash
+git clone https://github.com/zircote/adrscope.git
+cd adrscope
+make check  # Run fmt + lint + test
+````
 
 ## License
 

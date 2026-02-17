@@ -4,521 +4,500 @@ Common issues and solutions when using ADRScope.
 
 ## Installation Issues
 
-### Rust Version Too Old
+### cargo install fails
 
-**Problem**: Build fails with edition or syntax errors.
+**Problem:** Installation from crates.io fails with compilation errors.
 
-**Solution**: Verify you have Rust 1.85 or later:
+**Solution:**
 
-```bash
-rustc --version
-```
+1. Ensure Rust 1.85 or later is installed:
+   ````bash
+   rustc --version
+   ````
 
-If needed, update Rust:
+2. Update Rust if needed:
+   ````bash
+   rustup update stable
+   ````
 
-```bash
-rustup update stable
-```
+3. Try installing with verbose output to see the error:
+   ````bash
+   cargo install adrscope --verbose
+   ````
 
-### Build Fails with Network Error
+### Binary not found after installation
 
-**Problem**: `cargo install adrscope` fails with network timeout.
+**Problem:** `adrscope: command not found` after `cargo install`.
 
-**Solution**: 
-1. Check your internet connection
-2. Try with cargo's offline mode if you have dependencies cached:
-   ```bash
-   cargo install adrscope --offline
-   ```
-3. Use a different crates.io mirror if available
+**Solution:**
 
-### Permission Denied on Installation
+Ensure `~/.cargo/bin` is in your PATH:
 
-**Problem**: `cargo install` fails with permission error.
+````bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.cargo/bin:$PATH"
 
-**Solution**: Ensure `~/.cargo/bin` is writable, or install with:
+# Then reload your shell
+source ~/.bashrc
+````
 
-```bash
-cargo install --root ~/.local adrscope
-```
+Verify installation:
 
-Then add `~/.local/bin` to your PATH.
+````bash
+which adrscope
+adrscope --version
+````
 
-## Parsing Issues
+## Validation Issues
 
-### YAML Frontmatter Parse Error
+### "No ADR files found"
 
-**Problem**: Error message like "Parse error: invalid YAML frontmatter"
+**Problem:** ADRScope can't find any ADR files.
 
-**Common Causes**:
-1. Frontmatter delimiters (`---`) are missing or incorrect
-2. Invalid YAML syntax
-3. Special characters not properly escaped
+**Solution:**
 
-**Solution**: Verify frontmatter format:
+1. Verify the input directory exists:
+   ````bash
+   ls -la docs/decisions
+   ````
+
+2. Check the file pattern matches your files:
+   ````bash
+   # Default pattern is **/*.md
+   adrscope validate --pattern "**/*.md" --verbose
+   
+   # Try a different pattern
+   adrscope validate --pattern "adr-*.md"
+   ````
+
+3. Ensure files have the `.md` extension
+
+### Validation fails with "Missing required field: title"
+
+**Problem:** ADR is missing the required `title` field in frontmatter.
+
+**Solution:**
+
+Add a title to the YAML frontmatter:
 
 ````markdown
 ---
-title: My ADR Title
-description: A description here
-status: accepted
-category: architecture
-tags:
-  - tag1
-  - tag2
-date: 2026-02-17
+title: Your Decision Title Here
+status: proposed
 ---
-
-# My ADR Title
-
-Content goes here...
 ````
 
-**Debugging Steps**:
+### "Unknown status value" warnings
 
-1. Check YAML syntax with a linter:
-   ```bash
-   # Extract frontmatter manually
-   sed -n '/^---$/,/^---$/p' docs/decisions/adr-0001.md | yamllint -
-   ```
+**Problem:** ADRScope warns about unrecognized status values.
 
-2. Validate required fields are present:
-   - `title` (required)
-   - `status` (required)
-   
-3. Common YAML errors:
-   ```yaml
-   # ❌ Wrong - missing quotes for special characters
-   title: Title: With Colons
-   
-   # ✅ Correct
-   title: "Title: With Colons"
-   
-   # ❌ Wrong - invalid date format
-   date: 02/17/2026
-   
-   # ✅ Correct
-   date: 2026-02-17
-   
-   # ❌ Wrong - mixed indentation
-   tags:
-    - tag1
-     - tag2
-   
-   # ✅ Correct
-   tags:
-     - tag1
-     - tag2
-   ```
+**Solution:**
 
-### File Not Found
-
-**Problem**: "No ADR files found in directory"
-
-**Solution**:
-
-1. Verify the input directory exists:
-   ```bash
-   ls -la docs/decisions
-   ```
-
-2. Check the glob pattern matches your files:
-   ```bash
-   # Default pattern
-   adrscope generate --pattern "**/*.md"
-   
-   # Custom pattern for specific naming
-   adrscope generate --pattern "adr-*.md"
-   ```
-
-3. Ensure files have `.md` extension
-
-### Invalid Status Value
-
-**Problem**: "Invalid status: xyz"
-
-**Solution**: Status must be one of:
+ADRScope recognizes these status values:
 - `proposed`
 - `accepted`
 - `deprecated`
 - `superseded`
 
-Fix your frontmatter:
-```yaml
-# ❌ Wrong
-status: approved
+Unknown values are treated as `proposed` with a warning. To fix, use one of the recognized values:
 
-# ✅ Correct
-status: accepted
-```
+````yaml
+---
+title: My Decision
+status: accepted  # Use recognized value
+---
+````
 
-## Validation Issues
+### Validation passes but warnings appear
 
-### Validation Fails in Strict Mode
+**Problem:** `adrscope validate` succeeds but shows warnings.
 
-**Problem**: Validation passes normally but fails with `--strict`
+**Solution:**
 
-**Explanation**: Strict mode treats warnings as errors.
+Warnings indicate missing recommended fields. To make warnings fail in CI:
 
-**Solution**: Review all warnings and fix them, or run without `--strict`:
-
-```bash
-# See all warnings
-adrscope validate
-
-# Strict mode - warnings become errors
+````bash
 adrscope validate --strict
-```
+````
 
-### Circular Dependency Detected
+Add recommended fields to avoid warnings:
 
-**Problem**: "Circular dependency detected: ADR-001 → ADR-002 → ADR-001"
+````yaml
+---
+title: Use PostgreSQL
+description: Decision to use PostgreSQL as primary database
+status: accepted
+category: architecture
+tags:
+  - database
+created: 2025-01-15
+author: Architecture Team
+---
+````
 
-**Solution**: Fix the `supersedes` relationships to form a directed acyclic graph:
+## Parsing Issues
 
-```yaml
-# ADR-001
-superseded_by: ADR-002
+### YAML frontmatter parsing errors
 
-# ADR-002 should NOT supersede ADR-001
-# Remove or fix this:
-supersedes:
-  - ADR-001  # ❌ Creates a cycle
-```
+**Problem:** `Parse error: invalid YAML` or similar.
 
-### Duplicate ADR Numbers
+**Solution:**
 
-**Problem**: "Duplicate ADR number found: 0001"
+1. Ensure frontmatter is valid YAML between `---` markers:
 
-**Solution**: Ensure each ADR has a unique number in its filename:
+   ````markdown
+   ---
+   title: My Decision
+   status: accepted
+   ---
+   
+   ## Context
+   ````
 
-```bash
-# ❌ Wrong - duplicate numbers
-docs/decisions/adr-0001-first.md
-docs/decisions/adr-0001-second.md
+2. Check for common YAML mistakes:
+   - Missing quotes around special characters
+   - Incorrect indentation
+   - Missing colons
 
-# ✅ Correct - unique numbers
-docs/decisions/adr-0001-first.md
-docs/decisions/adr-0002-second.md
-```
+3. Validate YAML online: [YAML Lint](http://www.yamllint.com/)
+
+### Markdown rendering issues
+
+**Problem:** ADR content doesn't render correctly in HTML viewer.
+
+**Solution:**
+
+ADRScope uses CommonMark for markdown parsing. Ensure your markdown is valid:
+
+1. Test with a markdown validator
+2. Avoid non-standard markdown extensions
+3. Use standard heading levels (`##`, `###`)
 
 ## Generation Issues
 
-### Output File Permission Denied
+### HTML viewer is blank or empty
 
-**Problem**: Cannot write to output file
+**Problem:** Generated HTML file opens but shows no ADRs.
 
-**Solution**:
+**Solution:**
 
-1. Check directory permissions:
-   ```bash
-   ls -la $(dirname output.html)
-   ```
-
-2. Use a writable location:
-   ```bash
-   adrscope generate --output ~/adr-viewer.html
-   ```
-
-### Generated HTML is Empty
-
-**Problem**: HTML file is created but shows no ADRs
-
-**Possible Causes**:
-1. No ADR files matched the pattern
-2. All ADRs failed to parse
-3. Input directory is wrong
-
-**Solution**:
-
-1. Run with verbose mode:
-   ```bash
+1. Check the console for JavaScript errors (F12 in browser)
+2. Verify ADRs were parsed correctly:
+   ````bash
+   adrscope stats -i docs/decisions
+   ````
+3. Try regenerating with verbose output:
+   ````bash
    adrscope generate --verbose
-   ```
+   ````
 
-2. Verify files are being found:
-   ```bash
-   find docs/decisions -name "*.md" -type f
-   ```
+### Relationship graph doesn't show connections
 
-3. Test parsing individual files:
-   ```bash
-   adrscope validate --verbose
-   ```
+**Problem:** ADR relationships aren't visible in the graph.
 
-### HTML File Too Large
+**Solution:**
 
-**Problem**: Generated HTML is several MB
+1. Ensure `related` field uses correct filenames:
+   ````yaml
+   related:
+     - adr-0001-first-decision.md
+     - adr-0003-another-decision.md
+   ````
 
-**Explanation**: ADRScope embeds all content, CSS, and JavaScript in a single HTML file.
+2. Use exact filenames (case-sensitive)
+3. Verify related ADRs exist in the same directory
 
-**Solutions**:
+### Large ADR collections are slow to load
 
-1. This is expected for large ADR corpora (100+ ADRs)
-2. Consider generating multiple viewers:
-   ```bash
-   # By status
-   adrscope generate --output accepted.html --pattern "**/accepted/*.md"
-   
-   # By category
-   adrscope generate --output security.html --pattern "**/*security*.md"
-   ```
+**Problem:** Viewer is slow with 100+ ADRs.
 
-3. Use wiki format instead:
-   ```bash
-   adrscope wiki --input docs/decisions --output wiki/
-   ```
+**Solution:**
+
+1. Split ADRs into multiple viewers by category:
+   ````bash
+   adrscope generate -i docs/decisions/architecture -o arch.html
+   adrscope generate -i docs/decisions/security -o security.html
+   ````
+
+2. Use filtering to reduce the initial view
 
 ## Wiki Generation Issues
 
-### Wiki Directory Not Empty
+### Wiki pages have broken links
 
-**Problem**: Wiki output directory already has files
+**Problem:** Links between wiki pages don't work.
 
-**Solution**: ADRScope will overwrite existing files. To be safe:
+**Solution:**
 
-```bash
-# Back up existing wiki
-cp -r wiki wiki.backup
+Ensure output directory structure is correct:
 
-# Generate wiki
-adrscope wiki --output wiki
-```
+````bash
+adrscope wiki -i docs/decisions -o wiki/
+````
 
-### Wiki Links Not Working
+Generated files should be:
+````
+wiki/
+├── ADR-Index.md
+├── ADR-By-Status.md
+├── ADR-By-Category.md
+├── ADR-Timeline.md
+└── ADR-Statistics.md
+````
 
-**Problem**: Links between wiki pages are broken
+Deploy the entire `wiki/` directory to GitHub Wiki.
 
-**Explanation**: Ensure you're viewing the wiki in GitHub's wiki feature, not as raw Markdown.
+### GitHub Wiki deployment fails
 
-**Solution**: 
+**Problem:** Wiki action fails to deploy pages.
 
-1. Clone your wiki repository:
-   ```bash
-   git clone https://github.com/USERNAME/REPO.wiki.git
-   cd REPO.wiki
-   ```
+**Solution:**
 
-2. Copy generated files:
-   ```bash
-   cp path/to/generated/wiki/*.md .
-   ```
+1. Ensure the repository has Wiki enabled (Settings → Features → Wiki)
 
-3. Commit and push:
-   ```bash
-   git add *.md
-   git commit -m "Update ADR wiki pages"
-   git push
-   ```
+2. Check permissions in workflow:
+   ````yaml
+   permissions:
+     contents: write
+   ````
+
+3. Verify the Wiki action configuration:
+   ````yaml
+   - uses: Andrew-Chen-Wang/github-wiki-action@v4
+     with:
+       path: wiki/
+   ````
 
 ## GitHub Action Issues
 
-### Action Not Found
+### Action fails with "ADRScope binary not found"
 
-**Problem**: `uses: zircote/adrscope@v0` fails
+**Problem:** GitHub Action can't find the adrscope binary.
 
-**Solution**: Ensure you're using a valid version tag:
+**Solution:**
 
-```yaml
-- uses: zircote/adrscope@v0  # Latest v0.x
-# or
-- uses: zircote/adrscope@v0.3.0  # Specific version
-```
+The action downloads pre-built binaries automatically. If this fails:
 
-### Validation Annotations Not Appearing
+1. Check the runner's OS is supported (Linux, macOS, Windows)
+2. Check the architecture is supported (x86_64, ARM64)
+3. Try specifying a version:
+   ````yaml
+   - uses: zircote/adrscope@v0.3.0
+   ````
 
-**Problem**: Errors don't show inline in PR
+### Annotations don't appear in PR
 
-**Solution**: 
+**Problem:** Validation errors don't show up as inline annotations.
 
-1. Ensure you're using the `validate` command
-2. Check the action has write permissions:
-   ```yaml
-   permissions:
-     contents: read
-     pull-requests: write  # Required for annotations
-   ```
+**Solution:**
 
-3. Verify the action ran:
-   ```yaml
-   - name: Validate ADRs
-     uses: zircote/adrscope@v0
+1. Ensure you're using the validate command:
+   ````yaml
+   - uses: zircote/adrscope@v0
      with:
        command: validate
-       strict: true
-   ```
+   ````
 
-### Workflow Not Triggering
+2. Check the workflow has proper checkout:
+   ````yaml
+   - uses: actions/checkout@v4
+   ````
 
-**Problem**: Workflow doesn't run when ADRs change
+3. Verify the PR includes changes to ADR files
 
-**Solution**: Check your path filters:
+### Action is slow on every run
 
-```yaml
-on:
-  pull_request:
-    paths:
-      - 'docs/decisions/**'  # Must match your ADR directory
-      - 'docs/adr/**'        # Add all relevant paths
-```
+**Problem:** Action takes a long time to download the binary.
+
+**Solution:**
+
+The action caches binaries automatically. If caching isn't working:
+
+1. Check for cache permission issues
+2. The first run will always be slower (downloads binary)
+3. Subsequent runs should be ~2-5 seconds
+
+## Library Usage Issues
+
+### "InMemoryFileSystem not found" in tests
+
+**Problem:** Can't use `InMemoryFileSystem` in tests.
+
+**Solution:**
+
+`InMemoryFileSystem` is in the `test_support` module:
+
+````rust
+#[cfg(test)]
+use adrscope::infrastructure::fs::test_support::InMemoryFileSystem;
+
+#[test]
+fn my_test() {
+    let fs = InMemoryFileSystem::new();
+    // ...
+}
+````
+
+It's automatically available in `#[cfg(test)]` mode.
+
+### Compilation errors about missing types
+
+**Problem:** Compiler can't find exported types.
+
+**Solution:**
+
+Ensure you're importing from the correct modules:
+
+````rust
+// Application layer
+use adrscope::application::{GenerateUseCase, GenerateOptions};
+
+// Domain types
+use adrscope::domain::{Adr, Status, Frontmatter};
+
+// Infrastructure
+use adrscope::infrastructure::fs::RealFileSystem;
+
+// Errors
+use adrscope::{Error, Result};
+````
 
 ## Performance Issues
 
-### Slow Parsing
+### Validation is slow with many files
 
-**Problem**: Takes a long time to parse ADRs
+**Problem:** `adrscope validate` takes a long time.
 
-**Typical Performance**: 
-- ~100 ADRs: <1 second
-- ~1000 ADRs: <5 seconds
-- ~10000 ADRs: <30 seconds
+**Solution:**
 
-**If slower**:
+1. Use a more specific pattern to reduce file scanning:
+   ````bash
+   adrscope validate --pattern "adr-*.md"
+   ````
 
-1. Check for very large individual files (>1MB each)
-2. Reduce glob pattern scope:
-   ```bash
-   # ❌ Slower - searches entire repo
-   adrscope generate --pattern "**/*.md"
-   
-   # ✅ Faster - specific directory
-   adrscope generate --input docs/decisions --pattern "*.md"
-   ```
+2. Limit the directory depth:
+   ````bash
+   adrscope validate -i docs/decisions/active
+   ````
 
-3. Use more specific patterns to exclude non-ADR files
+3. Consider splitting large ADR collections
 
-### High Memory Usage
+### HTML viewer loads slowly
 
-**Problem**: Process uses excessive memory
+**Problem:** Browser takes a long time to load the viewer.
 
-**Typical Memory Usage**:
-- ~100 ADRs: <50 MB
-- ~1000 ADRs: <200 MB
+**Solution:**
 
-**If higher**:
+1. The viewer is a single self-contained HTML file. Large collections (500+ ADRs) may be slow.
 
-1. Process ADRs in batches
-2. Check for extremely large ADR files
-3. Consider splitting your ADR corpus into multiple viewers
+2. Solutions:
+   - Split into multiple viewers by category
+   - Use pagination (feature request - contribute!)
+   - Deploy to a web server instead of opening locally
 
-## Command-Line Issues
+## Platform-Specific Issues
 
-### Command Not Found
+### macOS: "unidentified developer" warning
 
-**Problem**: `adrscope: command not found`
+**Problem:** macOS blocks the binary with a security warning.
 
-**Solution**: Ensure `~/.cargo/bin` is in your PATH:
+**Solution:**
 
-```bash
-echo $PATH | grep cargo
-```
+````bash
+# Remove quarantine attribute
+xattr -d com.apple.quarantine ~/.cargo/bin/adrscope
 
-If not present:
+# Or install via Homebrew (signed)
+brew install zircote/tap/adrscope
+````
 
-```bash
-# For bash
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+### Windows: Path issues with backslashes
 
-# For zsh
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
+**Problem:** File paths with backslashes don't work.
 
-### Help Not Showing
+**Solution:**
 
-**Problem**: `adrscope --help` doesn't work
+Use forward slashes even on Windows:
 
-**Solution**: This should always work. If not:
+````bash
+adrscope generate -i docs/decisions -o output/viewer.html
+````
 
-1. Verify installation:
-   ```bash
-   which adrscope
-   adrscope --version
-   ```
+Or use the glob pattern:
 
-2. Reinstall:
-   ```bash
-   cargo install --force adrscope
-   ```
+````bash
+adrscope generate --pattern "**/*.md"
+````
 
-## Getting More Help
+### Linux: Permission denied
 
-### Enable Verbose Mode
+**Problem:** `adrscope: permission denied` when running the binary.
 
-For any issue, try running with `--verbose`:
+**Solution:**
 
-```bash
-adrscope generate --verbose
-adrscope validate --verbose
-adrscope stats --verbose
-adrscope wiki --verbose
-```
+Make the binary executable:
 
-This provides detailed debug information.
+````bash
+chmod +x ~/.cargo/bin/adrscope
+````
 
-### Check Version
+## Getting Help
 
-Ensure you're using the latest version:
+If you encounter an issue not covered here:
 
-```bash
-adrscope --version
-```
-
-Update if needed:
-
-```bash
-cargo install adrscope --force
-```
-
-### Report a Bug
-
-If you've found a bug:
-
-1. Check [existing issues](https://github.com/zircote/adrscope/issues)
-2. Create a new issue with:
-   - ADRScope version (`adrscope --version`)
+1. **Search existing issues**: [GitHub Issues](https://github.com/zircote/adrscope/issues)
+2. **Enable verbose output**: Add `--verbose` to see detailed logs
+3. **Check versions**: Run `adrscope --version` and `rustc --version`
+4. **Create an issue**: Include:
+   - ADRScope version
    - Operating system
-   - Full error message
-   - Minimal reproduction case
-   - Sample ADR file (if relevant)
+   - Rust version
+   - Complete error message
+   - Minimal reproduction steps
 
-### Common Error Messages
+## Debug Mode
 
-| Error Message | Likely Cause | Solution |
-|---------------|--------------|----------|
-| "No ADR files found" | Wrong directory or pattern | Check path and glob pattern |
-| "Parse error: invalid YAML" | Malformed frontmatter | Validate YAML syntax |
-| "Invalid status" | Unknown status value | Use proposed/accepted/deprecated/superseded |
-| "Permission denied" | No write access | Check file/directory permissions |
-| "Circular dependency" | Invalid supersedes chain | Fix ADR relationships |
-| "Duplicate ADR number" | Non-unique filenames | Rename files with unique numbers |
+Run with verbose logging to troubleshoot:
 
-### Known Limitations
+````bash
+# CLI usage
+adrscope generate --verbose
 
-1. **Large Files**: ADRs over 10MB may parse slowly
-2. **Unicode**: Full Unicode support, but some rare characters may render differently in HTML
-3. **Windows Paths**: Use forward slashes in patterns even on Windows
-4. **Glob Performance**: Extremely deep directory trees (>20 levels) may be slow
+# Library usage
+env RUST_LOG=debug cargo run
+````
 
-### Debug Checklist
+## Common Workarounds
 
-When troubleshooting:
+### Lenient parsing for non-standard ADRs
 
-- [ ] Run with `--verbose` flag
-- [ ] Check file permissions
-- [ ] Verify YAML frontmatter format
-- [ ] Test with a minimal ADR file
-- [ ] Check glob pattern matches files
-- [ ] Ensure Rust version is 1.85+
-- [ ] Try latest version of ADRScope
-- [ ] Review error message carefully
-- [ ] Check existing GitHub issues
+ADRScope is designed to be lenient. If you have ADRs from other tools:
 
-## Further Resources
+1. Unknown status values default to `proposed`
+2. Missing optional fields are handled gracefully
+3. Extra frontmatter fields are ignored
 
-- [User Guide](user-guide.md) - Complete command reference
-- [Getting Started](getting-started.md) - Initial setup guide
-- [Configuration](configuration.md) - All options explained
+### Converting from other ADR formats
+
+If migrating from another ADR tool:
+
+1. Keep the markdown body unchanged
+2. Add YAML frontmatter with required fields:
+   ````yaml
+   ---
+   title: [Extract from heading or filename]
+   status: [Map to: proposed|accepted|deprecated|superseded]
+   ---
+   ````
+
+3. Run validation to find missing fields:
+   ````bash
+   adrscope validate --strict
+   ````
+
+## See Also
+
+- [Configuration Reference](configuration.md) - All options explained
+- [User Guide](user-guide.md) - Complete command documentation
 - [GitHub Issues](https://github.com/zircote/adrscope/issues) - Report bugs
 - [GitHub Discussions](https://github.com/zircote/adrscope/discussions) - Ask questions

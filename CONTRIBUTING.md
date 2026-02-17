@@ -1,425 +1,393 @@
 # Contributing to ADRScope
 
-Thank you for your interest in contributing to ADRScope! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to ADRScope! This document provides guidelines and workflows for contributing.
 
 ## Code of Conduct
 
-We are committed to providing a welcoming and inclusive environment. Please be respectful and constructive in all interactions.
+Be respectful, inclusive, and collaborative. We're all here to build something useful together.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Rust**: Version 1.85 or later
-- **Git**: For version control
-- **Make**: Optional but recommended for build shortcuts
+- **Rust 1.85+** (2024 edition)
+- **cargo-deny** - `cargo install cargo-deny`
+- **Git** with [Conventional Commits](https://www.conventionalcommits.org/) knowledge
 
-### Setting Up Your Development Environment
+### Clone and Build
 
-1. **Fork and clone the repository**:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/adrscope.git
-   cd adrscope
-   ```
+````bash
+git clone https://github.com/zircote/adrscope.git
+cd adrscope
+make check
+````
 
-2. **Build the project**:
-   ```bash
-   cargo build
-   ```
-
-3. **Run tests**:
-   ```bash
-   make test
-   # or
-   cargo test
-   ```
-
-4. **Run linters**:
-   ```bash
-   make lint
-   # or
-   cargo clippy --all-targets --all-features -- -D warnings
-   ```
+This runs the quick check pipeline: format, lint, and test.
 
 ## Development Workflow
 
-### Branch Naming
+### 1. Create a Branch
 
-Use descriptive branch names following this pattern:
+````bash
+git checkout -b feature/your-feature-name
+# or
+git checkout -b fix/bug-description
+````
 
-- `feat/description` - New features
-- `fix/description` - Bug fixes
-- `docs/description` - Documentation changes
-- `refactor/description` - Code refactoring
-- `test/description` - Test additions or modifications
+**Branch Naming:**
 
-Example: `feat/add-json-export` or `fix/parser-edge-case`
+- `feature/` - New features
+- `fix/` - Bug fixes
+- `docs/` - Documentation changes
+- `refactor/` - Code refactoring
+- `test/` - Test improvements
 
-### Making Changes
+### 2. Make Changes
 
-1. **Create a new branch**:
-   ```bash
-   git checkout -b feat/my-new-feature
-   ```
+Follow the [code conventions](#code-conventions) below.
 
-2. **Make your changes** following the [coding standards](#coding-standards)
+### 3. Run Checks
 
-3. **Run the full check suite**:
-   ```bash
-   make check
-   ```
+Before committing, run:
 
-4. **Commit your changes** with clear, descriptive messages:
-   ```bash
-   git commit -m "feat: add JSON export functionality"
-   ```
+````bash
+make check
+````
 
-   We follow [Conventional Commits](https://www.conventionalcommits.org/):
-   - `feat:` - New features
-   - `fix:` - Bug fixes
-   - `docs:` - Documentation changes
-   - `refactor:` - Code refactoring
-   - `test:` - Test changes
-   - `chore:` - Build/tooling changes
+This executes:
+- `cargo fmt --check` - Code formatting
+- `cargo clippy -- -D warnings` - Linting
+- `cargo test` - All tests
 
-5. **Push your branch**:
-   ```bash
-   git push origin feat/my-new-feature
-   ```
+For a full CI-style check:
 
-6. **Create a Pull Request** on GitHub
+````bash
+make ci
+````
 
-## Coding Standards
+This adds:
+- `cargo doc` - Documentation generation
+- `cargo deny check` - Supply chain security
+- MSRV verification
 
-ADRScope follows strict coding standards enforced by Rust's compiler and tooling.
+### 4. Commit Changes
 
-### Architecture Principles
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-ADRScope uses **Clean Architecture** with four layers:
+````bash
+git commit -m "feat: add faceted search for technologies"
+git commit -m "fix: handle empty ADR frontmatter gracefully"
+git commit -m "docs: update library API examples"
+````
 
-```
-cli → application → domain
-         ↓
-    infrastructure
-```
+**Commit Types:**
 
-**Key rules**:
-- **No panics in library code**: Use `Result` types instead
-- **No unsafe code**: `#![forbid(unsafe_code)]`
-- **Pure domain logic**: The domain layer must have zero I/O
-- **Trait abstractions**: All I/O goes through the `FileSystem` trait
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Code style (formatting, missing semicolons, etc.) |
+| `refactor` | Code refactoring without behavior change |
+| `perf` | Performance improvement |
+| `test` | Adding or updating tests |
+| `chore` | Build process, tooling, dependencies |
 
-See [Architecture Documentation](docs/architecture.md) for details.
+### 5. Push and Open PR
 
-### Code Style
+````bash
+git push origin feature/your-feature-name
+````
 
-We use `rustfmt` with project-specific configuration:
+Open a pull request on GitHub with:
 
-```bash
-cargo fmt --all
-```
+- **Clear title** following conventional commits format
+- **Description** explaining what and why
+- **Testing notes** showing how you verified the changes
+- **Breaking changes** if applicable
 
-Configuration is in `rustfmt.toml`. Key settings:
-- Max line width: 100 characters
-- Edition 2024 formatting
-- Consistent import grouping
+## Code Conventions
 
-### Linting
+### Architecture
 
-We enforce strict linting with clippy:
+ADRScope follows **Clean Architecture** with four layers:
 
-```bash
-cargo clippy --all-targets --all-features -- -D warnings
-```
+````
+src/
+├── cli/              # Command-line interface
+├── application/      # Use cases (orchestration)
+├── domain/           # Core business logic (pure, no I/O)
+└── infrastructure/   # External concerns (fs, parsing, rendering)
+````
 
-Enabled lint groups:
-- `clippy::all` - All standard lints
-- `clippy::pedantic` - Pedantic lints
-- `clippy::nursery` - Experimental lints
-- `missing_docs` - Require documentation for public items
+**Dependency Rules:**
 
-Some lints are allowed for practical reasons (see `clippy.toml` and `src/lib.rs`).
+- `cli` → `application` → `domain`
+- `application` → `infrastructure` (for I/O)
+- `domain` NEVER depends on `infrastructure`
+
+### Error Handling
+
+- **No panics** - Use `Result` types
+- **No `unwrap()`** in library code (tests are OK)
+- **Use `thiserror`** for custom errors
+
+````rust
+// Good
+pub fn parse_value(input: &str) -> Result<i64> {
+    input.parse().map_err(|e| Error::Parse(e))
+}
+
+// Bad
+pub fn parse_value(input: &str) -> i64 {
+    input.parse().unwrap()  // ❌ Never in library code
+}
+````
+
+### Safety
+
+- **`#![forbid(unsafe_code)]`** - No unsafe code allowed
+- Use safe Rust patterns exclusively
 
 ### Documentation
 
-All public items must have documentation comments:
+Document public APIs with examples:
 
-```rust
-/// Generates an HTML viewer for Architecture Decision Records.
+````rust
+/// Generates an HTML viewer from ADRs.
 ///
 /// # Arguments
 ///
-/// * `adrs` - The ADRs to include in the viewer.
-/// * `options` - Configuration options for generation.
+/// * `options` - Configuration for generation
 ///
 /// # Returns
 ///
-/// Returns `Ok(GenerateResult)` on success.
+/// A result containing the number of ADRs processed.
 ///
 /// # Errors
 ///
-/// Returns `Error::Io` if file operations fail.
+/// Returns an error if:
+/// - No ADR files are found
+/// - File reading fails
+/// - HTML rendering fails
 ///
 /// # Examples
 ///
-/// ```
+/// ````no_run
 /// use adrscope::application::{GenerateOptions, GenerateUseCase};
 /// use adrscope::infrastructure::fs::RealFileSystem;
 ///
 /// let fs = RealFileSystem::new();
 /// let use_case = GenerateUseCase::new(fs);
 /// let options = GenerateOptions::new("docs/decisions");
+///
 /// let result = use_case.execute(&options)?;
 /// # Ok::<(), adrscope::Error>(())
-/// ```
-pub fn generate(adrs: &[Adr], options: &GenerateOptions) -> Result<GenerateResult> {
+/// ````
+pub fn execute(&self, options: &GenerateOptions) -> Result<GenerateResult> {
     // implementation
 }
-```
-
-Follow these documentation guidelines:
-- Use active voice
-- Start with a verb ("Generates", "Parses", "Validates")
-- Include examples for public APIs
-- Document errors with `# Errors` section
-- Document panics with `# Panics` section (though we avoid panics)
-
-### Error Handling
-
-All fallible operations must return `Result`:
-
-```rust
-// ✅ Good
-pub fn parse_adr(content: &str) -> Result<Adr> {
-    // ...
-}
-
-// ❌ Bad - panics on error
-pub fn parse_adr(content: &str) -> Adr {
-    // ...
-}
-```
-
-Use the unified `Error` type from `src/error.rs`:
-
-```rust
-use crate::{Error, Result};
-
-pub fn my_function() -> Result<String> {
-    let content = std::fs::read_to_string("file.txt")
-        .map_err(Error::Io)?;
-    Ok(content)
-}
-```
-
-Never use `unwrap()`, `expect()`, or `panic!()` in library code.
+````
 
 ### Testing
 
-Write comprehensive tests for all new code:
+Write comprehensive tests:
 
-#### Unit Tests
-
-Place unit tests in the same file with `#[cfg(test)]`:
-
-```rust
+````rust
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_frontmatter() {
-        let input = "---\ntitle: Test\n---\n";
-        let result = parse_frontmatter(input);
+    fn test_parse_valid_frontmatter() {
+        let input = "---\ntitle: Test\nstatus: accepted\n---\n\n## Context\n\nTest";
+        let result = parse(input);
         assert!(result.is_ok());
+        assert_eq!(result.unwrap().frontmatter.title, "Test");
     }
 
     #[test]
-    fn test_parse_invalid_frontmatter() {
-        let input = "---\ninvalid yaml\n---\n";
-        let result = parse_frontmatter(input);
+    fn test_parse_missing_title_returns_error() {
+        let input = "---\nstatus: accepted\n---\n\n## Context\n\nTest";
+        let result = parse(input);
         assert!(matches!(result, Err(Error::Parse(_))));
     }
 }
-```
+````
 
-#### Integration Tests
+Use `InMemoryFileSystem` for testing:
 
-For end-to-end tests, add to `tests/integration_test.rs`:
-
-```rust
+````rust
 #[test]
-fn test_generate_command() {
-    let fs = InMemoryFileSystem::new();
-    fs.write(Path::new("adr.md"), SAMPLE_ADR).unwrap();
+fn test_generate_use_case() {
+    let mut fs = InMemoryFileSystem::new();
+    fs.add_file("docs/adr-001.md", "---\ntitle: Test\nstatus: accepted\n---\n\n## Context\n\nTest");
     
     let use_case = GenerateUseCase::new(fs);
-    let options = GenerateOptions::new(".").with_output("output.html");
-    let result = use_case.execute(&options);
+    let result = use_case.execute(&GenerateOptions::default()).unwrap();
     
-    assert!(result.is_ok());
+    assert_eq!(result.adr_count, 1);
 }
-```
+````
 
-#### Property-Based Tests
+### Linting
 
-For parsers and complex logic, use `proptest`:
+We use clippy with pedantic and nursery lints:
 
-```rust
-use proptest::prelude::*;
+````bash
+cargo clippy -- -D warnings
+````
 
-proptest! {
-    #[test]
-    fn test_roundtrip(s in ".*") {
-        let encoded = encode(&s);
-        let decoded = decode(&encoded)?;
-        prop_assert_eq!(s, decoded);
-    }
-}
-```
+Some lints are allowed for practical reasons (see `src/lib.rs` for the full list).
 
-### Test Coverage
+### Formatting
 
-We aim for high test coverage:
-- All public functions should have tests
-- Critical paths must have tests
-- Edge cases should be covered
+Use rustfmt with our configuration:
 
-Run tests with:
-```bash
-make test
-# or
-cargo test --all-features
-```
+````bash
+cargo fmt
+````
 
-## Pull Request Process
-
-### Before Submitting
-
-Ensure your PR passes all checks:
-
-```bash
-make ci
-```
-
-This runs:
-1. Format check (`cargo fmt --check`)
-2. Clippy lints (`cargo clippy -D warnings`)
-3. All tests (`cargo test`)
-4. Documentation build (`cargo doc`)
-5. Supply chain audit (`cargo deny check`)
-6. MSRV verification
-
-### PR Description
-
-Include in your PR description:
-- **What**: Brief description of changes
-- **Why**: Motivation for the change
-- **How**: Technical approach (if complex)
-- **Testing**: How you tested the changes
-- **Breaking changes**: Any API changes or migrations needed
-
-Example:
-```markdown
-## What
-Add JSON export format for ADR statistics
-
-## Why
-Users requested machine-readable statistics output for integration with other tools.
-
-## How
-- Added `--format json` flag to stats command
-- Implemented JSON serialization using serde
-- Updated documentation
+Configuration is in `rustfmt.toml`.
 
 ## Testing
-- Added unit tests for JSON serialization
-- Added integration test for stats --format json
-- Manually tested with real ADR corpus
 
-## Breaking Changes
-None - this is additive functionality
-```
+### Run All Tests
+
+````bash
+make test
+````
+
+Or with cargo directly:
+
+````bash
+cargo test --verbose
+````
+
+### Run Specific Test
+
+````bash
+cargo test test_name
+````
+
+### Run with Output
+
+````bash
+cargo test -- --nocapture
+````
+
+### Integration Tests
+
+Integration tests are in `tests/integration_test.rs`. They test the full pipeline with real file fixtures.
+
+## Documentation
+
+### Build Documentation
+
+````bash
+make doc
+````
+
+Or:
+
+````bash
+cargo doc --open
+````
+
+### Update User Guides
+
+User-facing documentation is in `docs/`:
+
+- `getting-started.md` - Tutorial
+- `user-guide.md` - Command reference
+- `configuration.md` - Configuration options
+- `library-api.md` - Library usage guide
+
+When adding features, update relevant documentation.
+
+### ADRs
+
+Architectural decisions are documented in `docs/decisions/`. When making significant architectural changes, create a new ADR:
+
+````bash
+cp docs/decisions/adr-0001-template.md docs/decisions/adr-NNNN-your-decision.md
+````
+
+Follow the [structured-MADR](https://github.com/zircote/structured-madr) format.
+
+## Pull Request Guidelines
+
+### PR Checklist
+
+- [ ] Code follows clean architecture principles
+- [ ] All tests pass (`make test`)
+- [ ] Linting passes (`make lint`)
+- [ ] Code is formatted (`make fmt`)
+- [ ] Documentation updated if needed
+- [ ] ADR created for architectural changes
+- [ ] Conventional commit messages used
+- [ ] PR description explains what and why
 
 ### Review Process
 
-1. Maintainers will review your PR
-2. Address feedback by pushing new commits
-3. Once approved, a maintainer will merge your PR
+1. **Automated checks** - CI runs on all PRs
+2. **Code review** - Maintainer reviews for quality and design
+3. **Feedback** - Address review comments
+4. **Approval** - Maintainer approves changes
+5. **Merge** - Squash and merge to main
 
-## Types of Contributions
+### CI Checks
 
-### Bug Fixes
+GitHub Actions runs:
 
-1. Check if an issue already exists
-2. If not, create an issue describing the bug
-3. Reference the issue in your PR
+- ✅ Format check (`cargo fmt --check`)
+- ✅ Clippy (`cargo clippy -- -D warnings`)
+- ✅ Tests (`cargo test`)
+- ✅ Documentation (`cargo doc`)
+- ✅ Supply chain security (`cargo deny check`)
+- ✅ MSRV verification (Rust 1.85)
 
-### New Features
-
-1. Create an issue to discuss the feature first
-2. Wait for maintainer feedback
-3. Implement the feature following architecture guidelines
-4. Update documentation
-5. Add tests
-
-### Documentation
-
-Documentation improvements are always welcome:
-- Fix typos
-- Improve clarity
-- Add examples
-- Expand explanations
-
-### Performance Improvements
-
-1. Include benchmarks demonstrating the improvement
-2. Explain the optimization technique
-3. Ensure tests still pass
-
-## Dependency Management
-
-### Adding Dependencies
-
-Be conservative when adding dependencies:
-- Prefer standard library when possible
-- Check license compatibility (MIT, Apache 2.0, BSD)
-- Verify with `cargo deny check`
-- Justify the dependency in your PR description
-
-### Updating Dependencies
-
-- Run `cargo update` to update within semver ranges
-- Test thoroughly after updates
-- Check for security advisories
+All checks must pass before merging.
 
 ## Release Process
 
-(For maintainers)
+Releases are handled by maintainers:
 
-1. Update version in `Cargo.toml`
-2. Update `CHANGELOG.md`
-3. Create git tag: `git tag v0.X.Y`
-4. Push tag: `git push origin v0.X.Y`
-5. CI will automatically publish to crates.io and GitHub releases
+1. Update `CHANGELOG.md`
+2. Bump version in `Cargo.toml`
+3. Create git tag: `git tag -a v0.x.0 -m "Release v0.x.0"`
+4. Push tag: `git push origin v0.x.0`
+5. GitHub Actions builds and publishes to crates.io
+
+## Makefile Commands
+
+Quick reference:
+
+````bash
+make build          # Build debug binary
+make release        # Build optimized binary
+make test           # Run all tests
+make lint           # Run clippy
+make fmt            # Format code
+make check          # Quick check (fmt + lint + test)
+make ci             # Full CI pipeline
+make doc            # Generate documentation
+make install        # Install to ~/.cargo/bin
+make clean          # Clean build artifacts
+````
 
 ## Getting Help
 
-- **Questions**: Open a [GitHub Discussion](https://github.com/zircote/adrscope/discussions)
-- **Bugs**: Open a [GitHub Issue](https://github.com/zircote/adrscope/issues)
-- **Security**: Email zircote@gmail.com (do not open public issues)
+- **Issues** - [GitHub Issues](https://github.com/zircote/adrscope/issues)
+- **Discussions** - [GitHub Discussions](https://github.com/zircote/adrscope/discussions)
+- **Chat** - Check README for community links
 
 ## Recognition
 
 Contributors are recognized in:
+
 - Git commit history
-- Release notes
-- Special thanks in README (for significant contributions)
+- Release notes in `CHANGELOG.md`
+- GitHub contributors graph
 
-## License
-
-By contributing to ADRScope, you agree that your contributions will be licensed under the MIT License.
-
----
-
-Thank you for contributing to ADRScope! 🎉
+Thank you for contributing! 🎉
