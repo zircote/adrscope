@@ -366,7 +366,29 @@ make install    # Install to ~/.cargo/bin
 
 The Minimum Supported Rust Version (MSRV) is **1.85**. Increasing the MSRV is considered a minor breaking change.
 
+## Documentation
+
+Comprehensive documentation is available:
+
+- **[Getting Started Guide](docs/getting-started.md)** - Installation and first steps
+- **[User Guide](docs/user-guide.md)** - Complete command reference
+- **[Configuration Reference](docs/configuration.md)** - All configuration options
+- **[API Reference](docs/api-reference.md)** - Library API documentation
+- **[Architecture](docs/architecture.md)** - System design and structure
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Documentation Index](docs/README.md)** - Complete documentation map
+
 ## Contributing
+
+Contributions are welcome! Please read our **[Contributing Guide](CONTRIBUTING.md)** for details on:
+
+- Development workflow and branch naming
+- Coding standards and architecture principles
+- Testing requirements
+- Pull request process
+
+Quick start:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
