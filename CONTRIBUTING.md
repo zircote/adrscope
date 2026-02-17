@@ -134,13 +134,17 @@ src/
 
 ````rust
 // Good
-pub fn parse_value(input: &str) -> Result<i64> {
-    input.parse().map_err(|e| Error::Parse(e))
+pub fn read_config(path: &Path) -> Result<String> {
+    std::fs::read_to_string(path)
+        .map_err(|source| Error::FileRead {
+            path: path.to_path_buf(),
+            source,
+        })
 }
 
 // Bad
-pub fn parse_value(input: &str) -> i64 {
-    input.parse().unwrap()  // ❌ Never in library code
+pub fn read_config(path: &Path) -> String {
+    std::fs::read_to_string(path).unwrap()  // Never in library code
 }
 ````
 
@@ -215,17 +219,21 @@ mod tests {
 }
 ````
 
-Use `InMemoryFileSystem` for testing:
+Use `InMemoryFileSystem` for testing (available under `#[cfg(test)]` or with `feature = "testing"`):
 
 ````rust
+use adrscope::infrastructure::fs::test_support::InMemoryFileSystem;
+use std::path::Path;
+
 #[test]
 fn test_generate_use_case() {
-    let mut fs = InMemoryFileSystem::new();
-    fs.add_file("docs/adr-001.md", "---\ntitle: Test\nstatus: accepted\n---\n\n## Context\n\nTest");
-    
+    let fs = InMemoryFileSystem::new();
+    fs.add_file("docs/decisions/adr-001.md", "---\ntitle: Test\nstatus: accepted\n---\n\n## Context\n\nTest");
+
     let use_case = GenerateUseCase::new(fs);
-    let result = use_case.execute(&GenerateOptions::default()).unwrap();
-    
+    let options = GenerateOptions::new("docs/decisions");
+    let result = use_case.execute(&options).unwrap();
+
     assert_eq!(result.adr_count, 1);
 }
 ````
