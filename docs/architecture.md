@@ -29,7 +29,7 @@ ADRScope follows **Clean Architecture** principles with four distinct layers:
 ### Design Principles
 
 1. **Dependency Inversion**: High-level modules don't depend on low-level modules. Both depend on abstractions (traits).
-2. **Pure Domain Logic**: The domain layer has zero I/O dependencies and is pure Rust.
+2. **No I/O in Domain**: The domain layer has no I/O or infrastructure dependencies. It depends on external crates (`serde`, `time`) for serialization and dates, but performs no file or network operations.
 3. **Testability**: All file I/O goes through the `FileSystem` trait, enabling in-memory testing.
 4. **Error Handling**: All fallible operations return `Result` types; no panics in library code.
 
@@ -75,24 +75,24 @@ pub struct GenerateUseCase<F: FileSystem> {
 }
 
 pub struct GenerateOptions {
-    input_dir: PathBuf,
-    output: PathBuf,
+    pub input_dir: String,
+    pub output: String,
     // ...
 }
 
 impl GenerateOptions {
-    pub fn new(input: impl Into<PathBuf>) -> Self { /* ... */ }
-    pub fn with_output(mut self, output: impl Into<PathBuf>) -> Self { /* ... */ }
+    pub fn new(input: impl Into<String>) -> Self { /* ... */ }
+    pub fn with_output(mut self, output: impl Into<String>) -> Self { /* ... */ }
 }
 
 pub struct GenerateResult {
     pub adr_count: usize,
-    pub output_path: PathBuf,
+    pub output_path: String,
 }
 
 impl<F: FileSystem> GenerateUseCase<F> {
     pub fn new(fs: F) -> Self { Self { fs } }
-    
+
     pub fn execute(&self, options: &GenerateOptions) -> Result<GenerateResult> {
         // 1. Find ADR files
         // 2. Parse ADRs (using infrastructure/parser)
@@ -107,7 +107,7 @@ impl<F: FileSystem> GenerateUseCase<F> {
 
 ### Domain Layer (`src/domain/`)
 
-**Purpose**: Core business logic with zero external dependencies.
+**Purpose**: Core business logic with no I/O or infrastructure dependencies.
 
 **Key Components**:
 
@@ -127,21 +127,7 @@ impl<F: FileSystem> GenerateUseCase<F> {
 - No `unwrap()` or `panic!()` in library code
 - Comprehensive unit tests
 
-**Example**:
-```rust
-// Pure function - no I/O, testable
-pub fn extract_facets(adrs: &[Adr]) -> Facets {
-    let mut facets = Facets::new();
-    for adr in adrs {
-        facets.add_status(adr.frontmatter.status);
-        facets.add_category(adr.frontmatter.category.clone());
-        // ...
-    }
-    facets
-}
-```
-
-**Dependencies**: None (pure Rust standard library)
+**Dependencies**: Uses `serde` for serialization and `time` for date handling, but has no I/O or infrastructure dependencies.
 
 ### Infrastructure Layer (`src/infrastructure/`)
 
@@ -154,31 +140,37 @@ pub fn extract_facets(adrs: &[Adr]) -> Facets {
 Trait-based abstraction for all file operations:
 
 ```rust
-pub trait FileSystem {
+pub trait FileSystem: Send + Sync {
     fn read_to_string(&self, path: &Path) -> Result<String>;
     fn write(&self, path: &Path, contents: &str) -> Result<()>;
-    fn glob(&self, pattern: &str) -> Result<Vec<PathBuf>>;
+    fn glob(&self, base: &Path, pattern: &str) -> Result<Vec<PathBuf>>;
+    fn exists(&self, path: &Path) -> bool;
+    fn create_dir_all(&self, path: &Path) -> Result<()>;
 }
 
 // Production implementation
 pub struct RealFileSystem;
 
 // Test implementation (enabled via #[cfg(any(test, feature = "testing"))])
-#[cfg(any(test, feature = "testing"))]
-pub struct InMemoryFileSystem {
-    files: HashMap<PathBuf, String>,
-}
+// Located at infrastructure::fs::test_support::InMemoryFileSystem
 ```
 
 #### Parser (`parser/`)
 
 - `frontmatter.rs` - Extract and parse YAML frontmatter from Markdown
-- `markdown.rs` - Parse Markdown content
-- `mod.rs` - Orchestrate parsing pipeline
+- `markdown.rs` - Parse Markdown content to HTML
+- `mod.rs` - `AdrParser` trait and `DefaultAdrParser` implementation
+
+**Trait**:
+```rust
+pub trait AdrParser: Send + Sync {
+    fn parse(&self, path: &Path, content: &str) -> Result<Adr>;
+}
+```
 
 **Pipeline**:
 ```
-Markdown file → Extract frontmatter → Parse YAML → Parse content → Adr struct
+Markdown file -> Extract frontmatter -> Parse YAML -> Parse content -> Adr struct
 ```
 
 #### Renderer (`renderer/`)
@@ -194,19 +186,19 @@ Markdown file → Extract frontmatter → Parse YAML → Parse content → Adr s
 
 ```
 1. CLI parses arguments
-   ↓
+   |
 2. Application use case initialized
-   ↓
+   |
 3. Find ADR files (via FileSystem trait)
-   ↓
+   |
 4. Parse each file (infrastructure/parser)
-   ↓
+   |
 5. Extract facets (domain/facets)
-   ↓
+   |
 6. Build graph (domain/graph)
-   ↓
+   |
 7. Render template (infrastructure/renderer)
-   ↓
+   |
 8. Write output (via FileSystem trait)
 ```
 
@@ -214,17 +206,17 @@ Markdown file → Extract frontmatter → Parse YAML → Parse content → Adr s
 
 ```
 1. CLI parses arguments
-   ↓
+   |
 2. Application use case initialized
-   ↓
+   |
 3. Find ADR files (via FileSystem trait)
-   ↓
+   |
 4. Parse each file (infrastructure/parser)
-   ↓
+   |
 5. Run validation rules (domain/validation)
-   ↓
+   |
 6. Generate report (domain/validation)
-   ↓
+   |
 7. Display results (CLI)
 ```
 
@@ -234,31 +226,13 @@ Markdown file → Extract frontmatter → Parse YAML → Parse content → Adr s
 
 - Located in each module with `#[cfg(test)]`
 - Use `InMemoryFileSystem` for testing without disk I/O
-- Property-based tests with `proptest` for parsers
-
-Example:
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_extract_facets() {
-        let adrs = vec![
-            Adr::new(/* ... */),
-            Adr::new(/* ... */),
-        ];
-        let facets = extract_facets(&adrs);
-        assert_eq!(facets.statuses.len(), 2);
-    }
-}
-```
+- Property-based tests with `proptest` are recommended for parsers and may be added as the test suite evolves
 
 ### Integration Tests
 
 - Located in `tests/integration_test.rs`
 - Test full command flows end-to-end
-- Use `InMemoryFileSystem` for reproducibility
+- Use both `InMemoryFileSystem` and `RealFileSystem` with temporary directories
 
 ## Error Handling
 
@@ -269,16 +243,19 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
-    
-    #[error("Parse error: {0}")]
-    Parse(String),
-    
-    #[error("Validation failed: {0}")]
-    Validation(String),
-    
-    // ...
+    #[error("failed to read file {path}")]
+    FileRead { path: PathBuf, source: std::io::Error },
+
+    #[error("failed to write file {path}")]
+    FileWrite { path: PathBuf, source: std::io::Error },
+
+    #[error("invalid frontmatter in {path}: {message}")]
+    InvalidFrontmatter { path: PathBuf, message: String },
+
+    #[error("YAML parse error in {path}")]
+    YamlParse { path: PathBuf, source: serde_yaml::Error },
+
+    // ... additional variants
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -298,7 +275,7 @@ The codebase enforces strict quality standards:
 3. **Documentation**: All public items must have doc comments
 4. **MSRV**: Rust 1.85 (2024 edition)
 
-See `clippy.toml` and `rustfmt.toml` for complete linting and formatting rules.
+See `Cargo.toml` `[lints]` section for complete linting configuration.
 
 ## Build System
 
@@ -335,7 +312,7 @@ See `deny.toml` for configuration.
 ### Adding a New Validation Rule
 
 1. Implement the `ValidationRule` trait in `src/domain/validation.rs`
-2. Add the rule to `ValidationRuleSet`
+2. Add the rule to `default_rules()` or register it separately
 3. Add tests for the new rule
 
 Example:
@@ -343,12 +320,16 @@ Example:
 pub struct MyCustomRule;
 
 impl ValidationRule for MyCustomRule {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "my-custom-rule"
     }
-    
-    fn validate(&self, adr: &Adr) -> Vec<ValidationIssue> {
-        // validation logic
+
+    fn description(&self) -> &str {
+        "Checks ADRs for my custom condition"
+    }
+
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport) {
+        // validation logic — add issues via report.add_issue(...)
     }
 }
 ```

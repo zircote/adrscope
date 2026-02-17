@@ -19,17 +19,17 @@ Basic usage:
 
 ```rust
 use adrscope::application::{GenerateOptions, GenerateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 fn main() -> adrscope::Result<()> {
     let fs = RealFileSystem::new();
     let use_case = GenerateUseCase::new(fs);
     let options = GenerateOptions::new("docs/decisions")
         .with_output("adr-viewer.html");
-    
+
     let result = use_case.execute(&options)?;
     println!("Generated viewer with {} ADRs", result.adr_count);
-    
+
     Ok(())
 }
 ```
@@ -54,7 +54,7 @@ Generate self-contained HTML viewers for ADRs.
 
 ```rust
 use adrscope::application::{GenerateOptions, GenerateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = GenerateUseCase::new(fs);
@@ -75,11 +75,11 @@ println!("Generated {} ADRs", result.adr_count);
 
 **Methods**:
 
-#### `GenerateOptions::new(input: impl Into<PathBuf>) -> Self`
+#### `GenerateOptions::new(input: impl Into<String>) -> Self`
 
-Create options with input directory.
+Create options with input directory. Default output: `adrs.html`
 
-#### `GenerateOptions::with_output(self, output: impl Into<PathBuf>) -> Self`
+#### `GenerateOptions::with_output(self, output: impl Into<String>) -> Self`
 
 Set output file path. Default: `adrs.html`
 
@@ -91,11 +91,18 @@ Set HTML page title. Default: `"Architecture Decision Records"`
 
 Set glob pattern for finding ADR files. Default: `**/*.md`
 
+#### `GenerateOptions::with_theme(self, theme: Theme) -> Self`
+
+Set viewer theme (`Theme::Light`, `Theme::Dark`, `Theme::Auto`). Default: `Theme::Auto`
+
 #### `GenerateUseCase::execute(&self, options: &GenerateOptions) -> Result<GenerateResult>`
 
 Execute the generation use case.
 
-**Returns**: `GenerateResult` with `adr_count` and `output_path`
+**Returns**: `GenerateResult` with fields:
+- `output_path: String` - Path to the generated file
+- `adr_count: usize` - Number of ADRs included
+- `parse_errors: Vec<(PathBuf, Error)>` - Files that failed to parse
 
 ### Validate Use Case
 
@@ -103,7 +110,7 @@ Validate ADRs against a set of rules.
 
 ```rust
 use adrscope::application::{ValidateOptions, ValidateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = ValidateUseCase::new(fs);
@@ -112,10 +119,10 @@ let options = ValidateOptions::new("docs/decisions")
     .with_strict(true);
 
 let result = use_case.execute(&options)?;
-if result.is_valid {
+if result.passed {
     println!("All ADRs are valid!");
 } else {
-    println!("Found {} issues", result.total_issues);
+    println!("Found {} errors, {} warnings", result.total_errors, result.total_warnings);
 }
 ```
 
@@ -126,7 +133,7 @@ if result.is_valid {
 
 **Methods**:
 
-#### `ValidateOptions::new(input: impl Into<PathBuf>) -> Self`
+#### `ValidateOptions::new(input: impl Into<String>) -> Self`
 
 Create options with input directory.
 
@@ -142,7 +149,12 @@ Set glob pattern. Default: `**/*.md`
 
 Execute validation.
 
-**Returns**: `ValidateResult` with `is_valid`, `total_issues`, and detailed `report`
+**Returns**: `ValidateResult` with fields:
+- `reports: Vec<(PathBuf, ValidationReport)>` - Per-file validation reports
+- `parse_errors: Vec<(PathBuf, Error)>` - Files that failed to parse
+- `total_errors: usize` - Total error count across all files
+- `total_warnings: usize` - Total warning count across all files
+- `passed: bool` - Whether validation passed
 
 ### Stats Use Case
 
@@ -150,7 +162,7 @@ Compute statistics for ADRs.
 
 ```rust
 use adrscope::application::{StatsOptions, StatsUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = StatsUseCase::new(fs);
@@ -158,20 +170,33 @@ let use_case = StatsUseCase::new(fs);
 let options = StatsOptions::new("docs/decisions");
 let result = use_case.execute(&options)?;
 
-println!("Total ADRs: {}", result.stats.total_count);
-println!("Accepted: {}", result.stats.by_status.accepted);
+println!("Total ADRs: {}", result.statistics.total_count);
+for (status, count) in &result.statistics.by_status {
+    println!("  {}: {}", status, count);
+}
 ```
 
 **Types**:
 - `StatsUseCase<F: FileSystem>`
 - `StatsOptions`
 - `StatsResult`
+- `StatsFormat` - Output format enum (`Text`, `Json`, `Markdown`)
 
-**Key Fields in `StatsResult::stats`**:
+**Key Fields in `StatsResult`**:
+- `statistics: AdrStatistics` - Computed statistics
+- `output: String` - Formatted output string
+- `parse_errors: Vec<(PathBuf, Error)>` - Files that failed to parse
+
+**Key Fields in `AdrStatistics`**:
 - `total_count: usize` - Total number of ADRs
-- `by_status: StatusBreakdown` - Count per status
+- `by_status: HashMap<String, usize>` - Count per status
 - `by_category: HashMap<String, usize>` - Count per category
-- `recent_activity: Vec<RecentActivity>` - Recent changes
+- `by_author: HashMap<String, usize>` - Count per author
+- `by_tag: HashMap<String, usize>` - Count per tag
+- `by_technology: HashMap<String, usize>` - Count per technology
+- `by_year: HashMap<i32, usize>` - Count per year
+- `earliest_date: Option<Date>` - Earliest ADR date
+- `latest_date: Option<Date>` - Latest ADR date
 
 ### Wiki Use Case
 
@@ -179,21 +204,36 @@ Generate GitHub Wiki pages from ADRs.
 
 ```rust
 use adrscope::application::{WikiOptions, WikiUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = WikiUseCase::new(fs);
 
-let options = WikiOptions::new("docs/decisions", "wiki-output");
+let options = WikiOptions::new("docs/decisions")
+    .with_output_dir("wiki-output");
 let result = use_case.execute(&options)?;
 
-println!("Generated {} wiki pages", result.pages_generated);
+println!("Generated {} wiki pages", result.generated_files.len());
 ```
 
 **Types**:
 - `WikiUseCase<F: FileSystem>`
 - `WikiOptions`
 - `WikiResult`
+
+**Methods**:
+
+#### `WikiOptions::new(input: impl Into<String>) -> Self`
+
+Create options with input directory. Use builder methods for other settings.
+
+#### `WikiOptions::with_output_dir(self, dir: impl Into<String>) -> Self`
+
+Set output directory. Default: `wiki`
+
+#### `WikiOptions::with_pages_url(self, url: impl Into<String>) -> Self`
+
+Set GitHub Pages URL for cross-linking.
 
 **Generated Pages**:
 - `ADR-Index.md` - Main index
@@ -204,38 +244,72 @@ println!("Generated {} wiki pages", result.pages_generated);
 
 ## Domain Module
 
-Core business logic with zero I/O dependencies.
+Core business logic with no I/O or infrastructure dependencies.
 
 ### ADR Structure
 
+The `Adr` struct has private fields accessed via methods:
+
 ```rust
-use adrscope::domain::{Adr, Frontmatter, Status};
+use adrscope::domain::{Adr, AdrId, Frontmatter, Status};
 
-pub struct Adr {
-    pub frontmatter: Frontmatter,
-    pub content: String,
-    pub file_path: PathBuf,
-}
+// Adr fields are private; use accessor methods:
+// adr.id()           -> &AdrId
+// adr.filename()     -> &str
+// adr.source_path()  -> &PathBuf
+// adr.frontmatter()  -> &Frontmatter
+// adr.body_markdown() -> &str
+// adr.body_html()    -> &str
+// adr.body_text()    -> &str
 
+// Convenience delegates from frontmatter:
+// adr.title()        -> &str
+// adr.description()  -> &str
+// adr.status()       -> Status
+// adr.category()     -> &str
+// adr.tags()         -> &[String]
+// adr.author()       -> &str
+// adr.created()      -> Option<time::Date>
+// adr.updated()      -> Option<time::Date>
+// adr.related()      -> &[String]
+```
+
+### Frontmatter
+
+The `Frontmatter` struct has public fields:
+
+```rust
 pub struct Frontmatter {
     pub title: String,
-    pub description: Option<String>,
-    pub status: Status,
-    pub category: Option<String>,
+    pub description: String,
+    pub doc_type: String,       // default: "adr"
+    pub category: String,
     pub tags: Vec<String>,
-    pub date: Option<String>,
-    pub supersedes: Vec<String>,
-    pub superseded_by: Option<String>,
-    // ... additional fields
+    pub status: Status,
+    pub created: Option<time::Date>,
+    pub updated: Option<time::Date>,
+    pub author: String,
+    pub project: String,
+    pub technologies: Vec<String>,
+    pub audience: Vec<String>,
+    pub related: Vec<String>,
 }
+```
 
+Builder pattern via `Frontmatter::new(title)` with `.with_status()`, `.with_category()`, etc.
+
+### Status
+
+```rust
 pub enum Status {
-    Proposed,
+    Proposed,   // default
     Accepted,
     Deprecated,
     Superseded,
 }
 ```
+
+Implements `FromStr` (case-insensitive), `Display`, and `Default` (defaults to `Proposed`).
 
 ### Facets
 
@@ -245,16 +319,7 @@ Extract search facets from ADRs:
 use adrscope::domain::Facets;
 
 let facets = Facets::from_adrs(&adrs);
-println!("Statuses: {:?}", facets.statuses);
-println!("Categories: {:?}", facets.categories);
-println!("Tags: {:?}", facets.tags);
 ```
-
-**Key Methods**:
-- `Facets::from_adrs(adrs: &[Adr]) -> Self` - Extract facets
-- `facets.statuses: Vec<Status>` - Unique statuses
-- `facets.categories: Vec<String>` - Unique categories
-- `facets.tags: Vec<String>` - Unique tags
 
 ### Graph
 
@@ -265,44 +330,33 @@ use adrscope::domain::Graph;
 
 let graph = Graph::from_adrs(&adrs);
 for edge in graph.edges() {
-    println!("{} → {}", edge.from, edge.to);
+    println!("{} -> {}", edge.from, edge.to);
 }
 ```
-
-**Key Methods**:
-- `Graph::from_adrs(adrs: &[Adr]) -> Self` - Build graph
-- `graph.nodes() -> &[Node]` - Get all nodes
-- `graph.edges() -> &[Edge]` - Get all edges
-- `graph.find_cycles() -> Vec<Vec<String>>` - Detect cycles
 
 ### Statistics
 
 Compute ADR statistics:
 
 ```rust
-use adrscope::domain::Statistics;
+use adrscope::domain::AdrStatistics;
 
-let stats = Statistics::from_adrs(&adrs);
+let stats = AdrStatistics::from_adrs(&adrs);
 println!("Total: {}", stats.total_count);
-println!("Accepted: {}", stats.by_status.accepted);
-println!("Proposed: {}", stats.by_status.proposed);
+for (status, count) in &stats.by_status {
+    println!("  {}: {}", status, count);
+}
 ```
-
-**Key Fields**:
-- `total_count: usize`
-- `by_status: StatusBreakdown`
-- `by_category: HashMap<String, usize>`
-- `recent_activity: Vec<RecentActivity>`
 
 ### Validation
 
 Validate ADRs against rules:
 
 ```rust
-use adrscope::domain::validation::{ValidationRuleSet, ValidationReport};
+use adrscope::domain::{Validator, default_rules, ValidationReport, Severity};
 
-let rules = ValidationRuleSet::default();
-let report = rules.validate_all(&adrs);
+let validator = Validator::new(default_rules());
+let report: ValidationReport = validator.validate_all(&adrs);
 
 if report.is_valid() {
     println!("All ADRs valid!");
@@ -313,17 +367,22 @@ if report.is_valid() {
 }
 ```
 
-**Available Rules**:
-- `RequiredFieldsRule` - Ensures required frontmatter fields
-- `StatusTransitionRule` - Validates status transitions
-- `UniqueNumbersRule` - Checks for duplicate ADR numbers
-- `SupersedesRule` - Validates supersedes relationships
-- `FrontmatterFormatRule` - Validates YAML format
+**Validation Rule Trait**:
+```rust
+pub trait ValidationRule: Send + Sync {
+    fn name(&self) -> &str;
+    fn description(&self) -> &str;
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport);
+}
+```
+
+**Built-in Rules** (returned by `default_rules()`):
+- `RequiredFieldsRule` - Ensures required frontmatter fields (title)
+- `RecommendedFieldsRule` - Warns about missing recommended fields
 
 **Severity Levels**:
 - `Error` - Critical issues
 - `Warning` - Non-critical issues
-- `Info` - Informational notices
 
 ## Infrastructure Module
 
@@ -334,13 +393,13 @@ External concerns: file I/O, parsing, rendering.
 All file I/O goes through this trait for testability:
 
 ```rust
-use adrscope::infrastructure::fs::{FileSystem, RealFileSystem};
+use adrscope::infrastructure::{FileSystem, RealFileSystem};
 use std::path::Path;
 
-pub trait FileSystem {
+pub trait FileSystem: Send + Sync {
     fn read_to_string(&self, path: &Path) -> Result<String>;
     fn write(&self, path: &Path, contents: &str) -> Result<()>;
-    fn glob(&self, pattern: &str) -> Result<Vec<PathBuf>>;
+    fn glob(&self, base: &Path, pattern: &str) -> Result<Vec<PathBuf>>;
     fn exists(&self, path: &Path) -> bool;
     fn create_dir_all(&self, path: &Path) -> Result<()>;
 }
@@ -355,57 +414,57 @@ let content = fs.read_to_string(Path::new("adr.md"))?;
 For tests without disk I/O:
 
 ```rust
-#[cfg(test)]
-use adrscope::infrastructure::fs::InMemoryFileSystem;
+// Available under #[cfg(test)] or with feature = "testing"
+use adrscope::infrastructure::fs::test_support::InMemoryFileSystem;
 
 #[test]
 fn test_example() {
-    let mut fs = InMemoryFileSystem::new();
+    let fs = InMemoryFileSystem::new();
     fs.add_file("test.md", "# Test ADR");
-    
+
     let content = fs.read_to_string(Path::new("test.md")).unwrap();
     assert_eq!(content, "# Test ADR");
 }
 ```
 
-**Note**: `InMemoryFileSystem` is only available with the `testing` feature or in test builds.
-
 ### Parser
 
-Parse ADRs from Markdown files:
+Parse ADRs from Markdown files via the `AdrParser` trait:
 
 ```rust
-use adrscope::infrastructure::parser::parse_adr;
+use adrscope::infrastructure::{AdrParser, DefaultAdrParser};
 use std::path::Path;
 
+let parser = DefaultAdrParser::new();
 let content = std::fs::read_to_string("adr.md")?;
-let adr = parse_adr(&content, Path::new("adr.md"))?;
+let adr = parser.parse(Path::new("adr.md"), &content)?;
 
-println!("Title: {}", adr.frontmatter.title);
-println!("Status: {:?}", adr.frontmatter.status);
+println!("Title: {}", adr.title());
+println!("Status: {}", adr.status());
 ```
-
-**Key Functions**:
-- `parse_adr(content: &str, path: &Path) -> Result<Adr>` - Parse complete ADR
-- `extract_frontmatter(content: &str) -> Result<(String, String)>` - Extract YAML
-- `parse_frontmatter(yaml: &str) -> Result<Frontmatter>` - Parse YAML to struct
 
 ### Renderer
 
 Render ADRs to HTML or Wiki format:
 
 ```rust
-use adrscope::infrastructure::renderer::{HtmlRenderer, WikiRenderer};
+use adrscope::infrastructure::{HtmlRenderer, RenderConfig, Theme};
 
 // HTML rendering
-let html = HtmlRenderer::render(&adrs, &options)?;
-std::fs::write("viewer.html", html)?;
+let renderer = HtmlRenderer::new();
+let config = RenderConfig::new("My ADRs").with_theme(Theme::Dark);
+let html = renderer.render(adrs, "docs/decisions", &config)?;
+```
 
-// Wiki rendering
+Wiki rendering (via `infrastructure::renderer::wiki::WikiRenderer`):
+
+```rust
+use adrscope::infrastructure::renderer::wiki::WikiRenderer;
+
 let wiki = WikiRenderer::new();
-let pages = wiki.render(&adrs)?;
+let pages = wiki.render_all(&adrs, None)?;
 for (filename, content) in pages {
-    std::fs::write(format!("wiki/{}", filename), content)?;
+    println!("Generated: {}", filename);
 }
 ```
 
@@ -417,11 +476,18 @@ Unified error handling:
 use adrscope::{Error, Result};
 
 pub enum Error {
-    Io(std::io::Error),
-    Parse(String),
-    Validation(String),
-    Render(String),
-    NotFound(PathBuf),
+    FileRead { path: PathBuf, source: std::io::Error },
+    FileWrite { path: PathBuf, source: std::io::Error },
+    InvalidFrontmatter { path: PathBuf, message: String },
+    YamlParse { path: PathBuf, source: serde_yaml::Error },
+    MissingField { path: PathBuf, field: &'static str },
+    TemplateRender { source: askama::Error },
+    NoAdrsFound { path: PathBuf },
+    ValidationFailed(usize),
+    InvalidFilename(String),
+    GlobPattern(String),
+    DateParse { path: PathBuf, message: String },
+    JsonSerialize(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -440,32 +506,35 @@ Currently, ADRScope has one feature flag:
 ### Custom Validation Rule
 
 ```rust
-use adrscope::domain::validation::{ValidationRule, ValidationIssue, Severity};
-use adrscope::domain::Adr;
+use adrscope::domain::{
+    Adr, ValidationRule, ValidationReport, ValidationIssue, Severity,
+};
+use std::path::PathBuf;
 
 struct MinimumContentLengthRule {
     min_length: usize,
 }
 
 impl ValidationRule for MinimumContentLengthRule {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "minimum-content-length"
     }
-    
-    fn validate(&self, adr: &Adr) -> Vec<ValidationIssue> {
-        if adr.content.len() < self.min_length {
-            vec![ValidationIssue {
-                rule: self.name(),
-                severity: Severity::Warning,
-                message: format!(
+
+    fn description(&self) -> &str {
+        "Ensures ADR content meets minimum length"
+    }
+
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport) {
+        if adr.body_markdown().len() < self.min_length {
+            report.add_issue(ValidationIssue::warning(
+                adr.source_path().clone(),
+                format!(
                     "Content length {} is below minimum {}",
-                    adr.content.len(),
+                    adr.body_markdown().len(),
                     self.min_length
                 ),
-                file: adr.file_path.clone(),
-            }]
-        } else {
-            vec![]
+                self.name(),
+            ));
         }
     }
 }
@@ -478,38 +547,35 @@ use adrscope::domain::{Adr, Status};
 
 fn filter_accepted(adrs: Vec<Adr>) -> Vec<Adr> {
     adrs.into_iter()
-        .filter(|adr| matches!(adr.frontmatter.status, Status::Accepted))
+        .filter(|adr| matches!(adr.status(), Status::Accepted))
         .collect()
 }
 
 fn filter_by_category(adrs: Vec<Adr>, category: &str) -> Vec<Adr> {
     adrs.into_iter()
-        .filter(|adr| {
-            adr.frontmatter.category.as_deref() == Some(category)
-        })
+        .filter(|adr| adr.category() == category)
         .collect()
 }
 ```
 
-### Custom HTML Generation
+### Multi-Project Generation
 
 ```rust
 use adrscope::application::{GenerateOptions, GenerateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 fn generate_multiple_viewers() -> adrscope::Result<()> {
     let fs = RealFileSystem::new();
     let use_case = GenerateUseCase::new(fs);
-    
-    // Generate by status
-    for status in ["proposed", "accepted", "deprecated"] {
-        let options = GenerateOptions::new("docs/decisions")
-            .with_output(format!("{}-adrs.html", status))
-            .with_title(format!("{} ADRs", status));
-        
+
+    for project in ["backend", "frontend", "infra"] {
+        let options = GenerateOptions::new(format!("docs/{}/decisions", project))
+            .with_output(format!("{}-adrs.html", project))
+            .with_title(format!("{} Architecture Decisions", project));
+
         use_case.execute(&options)?;
     }
-    
+
     Ok(())
 }
 ```
