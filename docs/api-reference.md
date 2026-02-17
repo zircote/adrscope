@@ -142,15 +142,16 @@ println!("✓ All ADRs valid");
 
 ````rust
 pub struct ValidateResult {
-    pub report: ValidationReport,
-    pub adr_count: usize,
-}
-
-impl ValidateResult {
-    pub fn has_errors(&self) -> bool;
-    pub fn has_warnings(&self) -> bool;
-    pub fn error_count(&self) -> usize;
-    pub fn warning_count(&self) -> usize;
+    /// Validation reports for each successfully parsed file.
+    pub reports: Vec<(std::path::PathBuf, ValidationReport)>,
+    /// Files that failed to parse.
+    pub parse_errors: Vec<(std::path::PathBuf, Error)>,
+    /// Total number of validation errors across all files.
+    pub total_errors: usize,
+    /// Total number of validation warnings across all files.
+    pub total_warnings: usize,
+    /// Whether validation passed (no errors).
+    pub passed: bool,
 }
 ````
 
@@ -246,18 +247,27 @@ Represents a parsed Architecture Decision Record.
 
 ````rust
 pub struct Adr {
-    pub id: AdrId,
-    pub frontmatter: Frontmatter,
-    pub markdown_body: String,
-    pub html_body: String,
+    // Internal fields are private; use accessor methods instead.
+    /* fields omitted */
+}
+
+impl Adr {
+    pub fn id(&self) -> &AdrId { /* ... */ }
+    pub fn frontmatter(&self) -> &Frontmatter { /* ... */ }
+    pub fn body_markdown(&self) -> &str { /* ... */ }
+    pub fn body_html(&self) -> &str { /* ... */ }
+    pub fn filename(&self) -> &str { /* ... */ }
+    pub fn source_path(&self) -> &PathBuf { /* ... */ }
 }
 ````
 
-**Fields:**
-- `id: AdrId` - Unique identifier derived from filename
-- `frontmatter: Frontmatter` - Structured metadata from YAML frontmatter
-- `markdown_body: String` - Original markdown content (without frontmatter)
-- `html_body: String` - Rendered HTML content
+**Accessors:**
+- `fn id(&self) -> &AdrId` - Unique identifier derived from filename
+- `fn frontmatter(&self) -> &Frontmatter` - Structured metadata from YAML frontmatter
+- `fn body_markdown(&self) -> &str` - Original markdown content (without frontmatter)
+- `fn body_html(&self) -> &str` - Rendered HTML content
+- `fn filename(&self) -> &str` - Original filename
+- `fn source_path(&self) -> &PathBuf` - Source file path
 
 **Example:**
 
@@ -265,14 +275,16 @@ pub struct Adr {
 use adrscope::domain::Adr;
 use adrscope::infrastructure::parser::{AdrParser, DefaultAdrParser};
 use adrscope::infrastructure::fs::RealFileSystem;
+use std::path::Path;
 
 let fs = RealFileSystem::new();
-let parser = DefaultAdrParser::new(fs);
-let content = parser.read_file("docs/decisions/adr-0001.md")?;
-let adr = parser.parse("adr-0001.md", &content)?;
+let parser = DefaultAdrParser::new();
+let path = Path::new("docs/decisions/adr-0001.md");
+let content = fs.read_to_string(path)?;
+let adr = parser.parse(path, &content)?;
 
-println!("Title: {}", adr.frontmatter.title);
-println!("Status: {:?}", adr.frontmatter.status);
+println!("Title: {}", adr.frontmatter().title);
+println!("Status: {:?}", adr.frontmatter().status);
 # Ok::<(), adrscope::Error>(())
 ````
 
@@ -287,19 +299,31 @@ pub struct Frontmatter {
     pub status: Status,
 
     // Recommended fields
-    pub description: Option<String>,
-    pub created: Option<String>,
-    pub author: Option<String>,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub author: String,
 
-    // Optional categorization
-    pub r#type: Option<String>,
-    pub category: Option<String>,
+    // Optional metadata
+    #[serde(rename = "type", default = "default_type")]
+    pub doc_type: String,
+    #[serde(default)]
     pub tags: Vec<String>,
-    pub project: Option<String>,
+    #[serde(default)]
+    pub project: String,
+    #[serde(default, with = "optional_date")]
+    pub created: Option<time::Date>,
+    #[serde(default, with = "optional_date")]
+    pub updated: Option<time::Date>,
 
     // Optional context
+    #[serde(default)]
     pub technologies: Vec<String>,
+    #[serde(default)]
     pub audience: Vec<String>,
+    #[serde(default)]
     pub related: Vec<String>,
 }
 ````
@@ -439,14 +463,30 @@ Types for ADR validation.
 
 ````rust
 pub struct ValidationReport {
-    pub issues: Vec<ValidationIssue>,
+    issues: Vec<ValidationIssue>,
+}
+
+impl ValidationReport {
+    pub fn new() -> Self;
+    pub fn add_issue(&mut self, issue: ValidationIssue);
+    pub fn issues(&self) -> &[ValidationIssue];
+    pub fn error_count(&self) -> usize;
+    pub fn warning_count(&self) -> usize;
+    pub fn has_errors(&self) -> bool;
+    pub fn is_valid(&self) -> bool;
 }
 
 pub struct ValidationIssue {
-    pub file: String,
     pub severity: Severity,
+    pub path: PathBuf,
     pub message: String,
     pub line: Option<usize>,
+    pub rule: String,
+}
+
+impl ValidationIssue {
+    pub fn error(path: PathBuf, message: impl Into<String>, rule: impl Into<String>) -> Self;
+    pub fn warning(path: PathBuf, message: impl Into<String>, rule: impl Into<String>) -> Self;
 }
 
 pub enum Severity {
@@ -462,38 +502,64 @@ pub struct Validator {
     rules: Vec<Box<dyn ValidationRule>>,
 }
 
+impl Validator {
+    /// Creates a new validator with an initial set of rules.
+    pub fn new(rules: Vec<Box<dyn ValidationRule>>) -> Self;
+
+    /// Adds a rule to the validator.
+    pub fn add_rule(&mut self, rule: Box<dyn ValidationRule>);
+
+    /// Validates a collection of ADRs using all configured rules.
+    pub fn validate_all(&self, adrs: &[Adr]) -> ValidationReport;
+}
+
 pub trait ValidationRule: Send + Sync {
-    fn validate(&self, adr: &Adr) -> Vec<ValidationIssue>;
+    /// Machine-readable rule identifier.
+    fn name(&self) -> &str;
+
+    /// Human-readable description of what the rule checks.
+    fn description(&self) -> &str;
+
+    /// Applies the rule to the given ADR, recording any issues in the report.
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport);
 }
 ````
 
 **Example - Custom Validation Rule:**
 
 ````rust
-use adrscope::domain::{Adr, ValidationIssue, ValidationRule, Severity};
+use adrscope::domain::{Adr, ValidationIssue, ValidationReport, ValidationRule, Severity};
 
 struct CategoryRequiredRule;
 
 impl ValidationRule for CategoryRequiredRule {
-    fn validate(&self, adr: &Adr) -> Vec<ValidationIssue> {
-        if adr.frontmatter.category.is_none() {
-            return vec![ValidationIssue {
-                file: adr.id.to_string(),
-                severity: Severity::Error,
-                message: "Category is required".to_string(),
-                line: None,
-            }];
+    fn name(&self) -> &str {
+        "category_required"
+    }
+
+    fn description(&self) -> &str {
+        "Ensures that each ADR has a category set."
+    }
+
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport) {
+        if adr.category().is_empty() {
+            report.add_issue(ValidationIssue::error(
+                adr.source_path().clone(),
+                "Category is required",
+                self.name(),
+            ));
         }
-        vec![]
     }
 }
 
 use adrscope::domain::Validator;
 
-let mut validator = Validator::new();
-validator.add_rule(Box::new(CategoryRequiredRule));
+let rules: Vec<Box<dyn ValidationRule>> = vec![
+    Box::new(CategoryRequiredRule),
+];
+let validator = Validator::new(rules);
 
-let report = validator.validate(&adrs);
+let report = validator.validate_all(&adrs);
 # Ok::<(), adrscope::Error>(())
 ````
 
@@ -506,11 +572,21 @@ External system integrations and abstractions.
 Abstraction for file I/O operations. Enables testing and custom storage backends.
 
 ````rust
-pub trait FileSystem {
-    fn read_to_string(&self, path: &str) -> Result<String>;
-    fn write(&self, path: &str, content: &str) -> Result<()>;
-    fn glob(&self, pattern: &str) -> Result<Vec<String>>;
-    fn exists(&self, path: &str) -> bool;
+pub trait FileSystem: Send + Sync {
+    /// Reads the contents of a file as a UTF-8 string.
+    fn read_to_string(&self, path: &Path) -> Result<String>;
+
+    /// Writes string contents to a file, creating parent directories as needed.
+    fn write(&self, path: &Path, contents: &str) -> Result<()>;
+
+    /// Lists all files matching a glob pattern in a directory.
+    fn glob(&self, base: &Path, pattern: &str) -> Result<Vec<PathBuf>>;
+
+    /// Checks if a path exists.
+    fn exists(&self, path: &Path) -> bool;
+
+    /// Creates a directory and all parent directories.
+    fn create_dir_all(&self, path: &Path) -> Result<()>;
 }
 ````
 
@@ -524,39 +600,54 @@ pub trait FileSystem {
 use adrscope::infrastructure::FileSystem;
 use adrscope::Result;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
 
 struct CachedFileSystem {
-    cache: HashMap<String, String>,
+    cache: Arc<RwLock<HashMap<PathBuf, String>>>,
     backend: Box<dyn FileSystem>,
 }
 
 impl CachedFileSystem {
     fn new(backend: Box<dyn FileSystem>) -> Self {
         Self {
-            cache: HashMap::new(),
+            cache: Arc::new(RwLock::new(HashMap::new())),
             backend,
         }
     }
 }
 
 impl FileSystem for CachedFileSystem {
-    fn read_to_string(&self, path: &str) -> Result<String> {
-        if let Some(cached) = self.cache.get(path) {
+    fn read_to_string(&self, path: &Path) -> Result<String> {
+        let cache = self.cache.read().unwrap();
+        if let Some(cached) = cache.get(path) {
             return Ok(cached.clone());
         }
-        self.backend.read_to_string(path)
+        drop(cache);
+        
+        let content = self.backend.read_to_string(path)?;
+        
+        let mut cache = self.cache.write().unwrap();
+        cache.insert(path.to_path_buf(), content.clone());
+        
+        Ok(content)
     }
 
-    fn write(&self, path: &str, content: &str) -> Result<()> {
+    fn write(&self, path: &Path, content: &str) -> Result<()> {
         self.backend.write(path, content)
     }
 
-    fn glob(&self, pattern: &str) -> Result<Vec<String>> {
-        self.backend.glob(pattern)
+    fn glob(&self, base: &Path, pattern: &str) -> Result<Vec<PathBuf>> {
+        self.backend.glob(base, pattern)
     }
 
-    fn exists(&self, path: &str) -> bool {
-        self.cache.contains_key(path) || self.backend.exists(path)
+    fn exists(&self, path: &Path) -> bool {
+        let cache = self.cache.read().unwrap();
+        cache.contains_key(path) || self.backend.exists(path)
+    }
+
+    fn create_dir_all(&self, path: &Path) -> Result<()> {
+        self.backend.create_dir_all(path)
     }
 }
 ````
@@ -566,8 +657,9 @@ impl FileSystem for CachedFileSystem {
 Abstraction for parsing ADR files.
 
 ````rust
-pub trait AdrParser {
-    fn parse(&self, filename: &str, content: &str) -> Result<Adr>;
+pub trait AdrParser: Send + Sync {
+    /// Parses an ADR from file contents.
+    fn parse(&self, path: &Path, content: &str) -> Result<Adr>;
 }
 ````
 
@@ -579,12 +671,14 @@ pub trait AdrParser {
 ````rust
 use adrscope::infrastructure::parser::{AdrParser, DefaultAdrParser};
 use adrscope::infrastructure::fs::RealFileSystem;
+use std::path::Path;
 
 let fs = RealFileSystem::new();
-let parser = DefaultAdrParser::new(fs);
+let parser = DefaultAdrParser::new();
 
-let content = std::fs::read_to_string("adr-0001.md")?;
-let adr = parser.parse("adr-0001.md", &content)?;
+let path = Path::new("adr-0001.md");
+let content = fs.read_to_string(path)?;
+let adr = parser.parse(path, &content)?;
 # Ok::<(), adrscope::Error>(())
 ````
 
@@ -596,12 +690,26 @@ Generates self-contained HTML viewers.
 pub struct HtmlRenderer;
 
 impl HtmlRenderer {
-    pub fn render(config: &RenderConfig, data: &ViewerData) -> Result<String>;
+    pub fn new() -> Self;
+    
+    /// Renders a collection of ADRs to a self-contained HTML viewer.
+    pub fn render(
+        &self,
+        adrs: Vec<Adr>,
+        source_dir: &str,
+        config: &RenderConfig,
+    ) -> Result<String>;
 }
 
 pub struct RenderConfig {
     pub title: String,
     pub theme: Theme,
+    pub embed_assets: bool,
+}
+
+impl RenderConfig {
+    pub fn new(title: impl Into<String>) -> Self;
+    pub fn with_theme(self, theme: Theme) -> Self;
 }
 
 pub enum Theme {
@@ -611,30 +719,31 @@ pub enum Theme {
 }
 
 pub struct ViewerData {
-    pub adrs: Vec<Adr>,
+    pub meta: ViewerMeta,
+    pub records: Vec<Adr>,
     pub facets: Facets,
     pub graph: Graph,
+}
+
+pub struct ViewerMeta {
+    pub generated: String,
+    pub generator: String,
+    pub schema_version: String,
+    pub source_dir: String,
 }
 ````
 
 **Example:**
 
 ````rust
-use adrscope::infrastructure::renderer::{HtmlRenderer, RenderConfig, Theme, ViewerData};
+use adrscope::infrastructure::renderer::{HtmlRenderer, RenderConfig, Theme};
 use adrscope::domain::{Facets, Graph};
 
-let config = RenderConfig {
-    title: "My ADRs".to_string(),
-    theme: Theme::Dark,
-};
+let renderer = HtmlRenderer::new();
+let config = RenderConfig::new("My ADRs")
+    .with_theme(Theme::Dark);
 
-let data = ViewerData {
-    adrs: vec![/* parsed ADRs */],
-    facets: Facets::from_adrs(&adrs),
-    graph: Graph::from_adrs(&adrs),
-};
-
-let html = HtmlRenderer::render(&config, &data)?;
+let html = renderer.render(adrs, "docs/decisions", &config)?;
 # Ok::<(), adrscope::Error>(())
 ````
 
@@ -646,7 +755,21 @@ Generates GitHub Wiki markdown pages.
 pub struct WikiRenderer;
 
 impl WikiRenderer {
-    pub fn render(adrs: &[Adr]) -> Result<HashMap<String, String>>;
+    pub fn new() -> Self;
+    
+    /// Renders all wiki pages for a collection of ADRs.
+    pub fn render_all(
+        &self,
+        adrs: &[Adr],
+        pages_url: Option<&str>,
+    ) -> Result<Vec<(String, String)>>;
+    
+    /// Individual page renderers:
+    pub fn render_index(&self, adrs: &[Adr], pages_url: Option<&str>) -> String;
+    pub fn render_by_status(&self, adrs: &[Adr]) -> String;
+    pub fn render_by_category(&self, adrs: &[Adr]) -> String;
+    pub fn render_timeline(&self, adrs: &[Adr]) -> String;
+    pub fn render_statistics(&self, stats: &AdrStatistics) -> String;
 }
 ````
 
@@ -662,7 +785,8 @@ impl WikiRenderer {
 ````rust
 use adrscope::infrastructure::renderer::WikiRenderer;
 
-let pages = WikiRenderer::render(&adrs)?;
+let renderer = WikiRenderer::new();
+let pages = renderer.render_all(&adrs, Some("https://example.com"))?;
 
 for (filename, content) in pages {
     println!("Generated: {}", filename);
@@ -734,19 +858,23 @@ adrscope = { version = "0.3", features = ["testing"] }
 ````rust
 #[cfg(test)]
 mod tests {
-    use adrscope::infrastructure::fs::InMemoryFileSystem;
+    use adrscope::infrastructure::fs::test_support::InMemoryFileSystem;
     use adrscope::application::{GenerateUseCase, GenerateOptions};
+    use std::path::Path;
 
     #[test]
     fn test_generate() {
-        let mut fs = InMemoryFileSystem::new();
-        fs.add_file("docs/adr-0001.md", "---\ntitle: Test\nstatus: accepted\n---\n# Test");
+        let fs = InMemoryFileSystem::new();
+        fs.add_file(
+            Path::new("docs/adr-0001.md"),
+            "---\ntitle: Test\nstatus: accepted\n---\n# Test"
+        );
 
         let use_case = GenerateUseCase::new(fs);
         let options = GenerateOptions::new("docs");
 
         let result = use_case.execute(&options).unwrap();
-        assert_eq!(result.adr_count, 1);
+        assert!(result.adr_count > 0);
     }
 }
 ````
@@ -766,9 +894,13 @@ let fs = RealFileSystem::new();
 // Generate viewer for each project
 for project in ["frontend", "backend", "mobile"] {
     let use_case = GenerateUseCase::new(fs.clone());
-    let options = GenerateOptions::new(&format!("docs/{}/decisions", project))
-        .with_output(&format!("{}-adrs.html", project))
-        .with_title(&format!("{} Architecture Decisions", project));
+    let input_dir = format!("docs/{}/decisions", project);
+    let output_file = format!("{}-adrs.html", project);
+    let title = format!("{} Architecture Decisions", project);
+    
+    let options = GenerateOptions::new(input_dir)
+        .with_output(output_file)
+        .with_title(title);
 
     use_case.execute(&options)?;
 }

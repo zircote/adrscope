@@ -328,19 +328,26 @@ mod tests {
 Use `tests/integration_test.rs` for end-to-end testing:
 
 ````rust
-#[test]
-fn test_generate_complete_workflow() {
-    let mut fs = InMemoryFileSystem::new();
-    fs.add_file(
-        "adr-0001.md",
-        "---\ntitle: Test\nstatus: accepted\n---\n# Test",
-    );
+#[cfg(test)]
+mod tests {
+    use adrscope::infrastructure::fs::test_support::InMemoryFileSystem;
+    use adrscope::application::{GenerateUseCase, GenerateOptions};
+    use std::path::Path;
 
-    let use_case = GenerateUseCase::new(fs);
-    let options = GenerateOptions::new(".").with_output("viewer.html");
+    #[test]
+    fn test_generate_complete_workflow() {
+        let fs = InMemoryFileSystem::new();
+        fs.add_file(
+            Path::new("adr-0001.md"),
+            "---\ntitle: Test\nstatus: accepted\n---\n# Test",
+        );
 
-    let result = use_case.execute(&options).unwrap();
-    assert_eq!(result.adr_count, 1);
+        let use_case = GenerateUseCase::new(fs);
+        let options = GenerateOptions::new(".").with_output("viewer.html");
+
+        let result = use_case.execute(&options).unwrap();
+        assert!(result.adr_count > 0);
+    }
 }
 ````
 
@@ -444,7 +451,7 @@ pub struct MyFeatureArgs {
 pub fn handle_my_feature(args: &MyFeatureArgs) -> Result<()> {
     let fs = RealFileSystem::new();
     let use_case = MyFeatureUseCase::new(fs);
-    let options = MyFeatureOptions::new(&args.input);
+    let options = MyFeatureOptions::new(args.input.clone());
     let result = use_case.execute(&options)?;
     // Output formatting
     Ok(())
@@ -456,25 +463,28 @@ pub fn handle_my_feature(args: &MyFeatureArgs) -> Result<()> {
 1. **Create rule struct**
 
 ````rust
-use crate::domain::{Adr, ValidationIssue, ValidationRule, Severity};
+use crate::domain::{Adr, ValidationIssue, ValidationReport, ValidationRule, Severity};
 
 pub struct MyCustomRule;
 
 impl ValidationRule for MyCustomRule {
-    fn validate(&self, adr: &Adr) -> Vec<ValidationIssue> {
-        let mut issues = Vec::new();
+    fn name(&self) -> &str {
+        "my_custom_rule"
+    }
 
+    fn description(&self) -> &str {
+        "Checks ADRs for my custom condition."
+    }
+
+    fn validate(&self, adr: &Adr, report: &mut ValidationReport) {
         // Validation logic
-        if /* condition */ {
-            issues.push(ValidationIssue {
-                file: adr.id.to_string(),
-                severity: Severity::Warning,
-                message: "Issue description".to_string(),
-                line: None,
-            });
+        if /* condition */ true {
+            report.add_issue(ValidationIssue::warning(
+                adr.source_path().clone(),
+                "Issue description",
+                self.name(),
+            ));
         }
-
-        issues
     }
 }
 ````
