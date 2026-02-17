@@ -234,6 +234,10 @@ adrscope wiki -i docs/decisions -o wiki/
 
 ## Documentation
 
+📖 **[Complete Documentation Index](docs/README.md)** - Organized by learning path and task
+
+### Quick Links
+
 - [GitHub Action Documentation](ACTION.md)
 - [Getting Started Guide](docs/getting-started.md)
 - [User Guide](docs/user-guide.md)
