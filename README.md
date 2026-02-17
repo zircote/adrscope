@@ -234,11 +234,18 @@ adrscope wiki -i docs/decisions -o wiki/
 
 ## Documentation
 
-- [GitHub Action Documentation](ACTION.md)
-- [Getting Started Guide](docs/getting-started.md)
-- [User Guide](docs/user-guide.md)
-- [Configuration Reference](docs/configuration.md)
-- [Architecture Decision Records](docs/decisions/)
+### User Documentation
+- [Getting Started Guide](docs/getting-started.md) - Installation and first ADR viewer
+- [User Guide](docs/user-guide.md) - Complete command reference
+- [Configuration Reference](docs/configuration.md) - All configuration options
+
+### Developer Documentation
+- [API Reference](docs/api-reference.md) - Library API with examples
+- [Developer Guide](docs/developer-guide.md) - Contributing and architecture
+
+### Other Resources
+- [GitHub Action Documentation](ACTION.md) - CI/CD integration
+- [Architecture Decision Records](docs/decisions/) - ADRs documenting ADRScope itself
 
 ## Commands
 
