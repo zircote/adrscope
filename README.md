@@ -238,6 +238,9 @@ adrscope wiki -i docs/decisions -o wiki/
 - [Getting Started Guide](docs/getting-started.md)
 - [User Guide](docs/user-guide.md)
 - [Configuration Reference](docs/configuration.md)
+- [Library API Guide](docs/library-api.md) - Using ADRScope as a Rust library
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [Contributing Guide](CONTRIBUTING.md) - Development workflow and conventions
 - [Architecture Decision Records](docs/decisions/)
 
 ## Commands
@@ -368,11 +371,20 @@ The Minimum Supported Rust Version (MSRV) is **1.85**. Increasing the MSRV is co
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run checks (`make check`)
-4. Commit with conventional commits (`git commit -m 'feat: add feature'`)
-5. Push and open a Pull Request
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
+- Development setup and workflow
+- Code conventions and architecture guidelines
+- Testing requirements
+- Pull request process
+
+Quick start for contributors:
+
+````bash
+git clone https://github.com/zircote/adrscope.git
+cd adrscope
+make check  # Run fmt + lint + test
+````
 
 ## License
 
