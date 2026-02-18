@@ -192,6 +192,7 @@ adrscope wiki [OPTIONS]
 | `--input` | `-i` | `docs/decisions` | Input directory containing ADRs |
 | `--output` | `-o` | `wiki/` | Output directory for wiki pages |
 | `--pattern` | `-p` | `**/*.md` | Glob pattern for finding ADR files |
+| `--pages-url` | - | - | Base URL for wiki page links (optional) |
 
 ### Examples
 

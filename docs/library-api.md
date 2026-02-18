@@ -24,7 +24,7 @@ ADRScope follows Clean Architecture with four main layers:
 
 ````rust
 use adrscope::application::{GenerateOptions, GenerateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 fn main() -> Result<(), adrscope::Error> {
     let fs = RealFileSystem::new();
@@ -48,8 +48,7 @@ Create an interactive HTML viewer from your ADRs:
 
 ````rust
 use adrscope::application::{GenerateOptions, GenerateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
-use adrscope::infrastructure::Theme;
+use adrscope::infrastructure::{RealFileSystem, Theme};
 
 let fs = RealFileSystem::new();
 let use_case = GenerateUseCase::new(fs);
@@ -89,7 +88,7 @@ Check ADRs for required fields and best practices:
 
 ````rust
 use adrscope::application::{ValidateOptions, ValidateUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 use adrscope::domain::Severity;
 
 let fs = RealFileSystem::new();
@@ -140,7 +139,7 @@ Analyze your ADR collection:
 
 ````rust
 use adrscope::application::{StatsOptions, StatsUseCase, StatsFormat};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = StatsUseCase::new(fs);
@@ -181,7 +180,7 @@ Create GitHub Wiki-compatible markdown pages:
 
 ````rust
 use adrscope::application::{WikiOptions, WikiUseCase};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 let use_case = WikiUseCase::new(fs);
@@ -328,7 +327,7 @@ pub trait FileSystem {
 Production implementation:
 
 ````rust
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::RealFileSystem;
 
 let fs = RealFileSystem::new();
 ````
@@ -425,8 +424,7 @@ let report = validator.validate(&adrs);
 Parse ADRs without use cases:
 
 ````rust
-use adrscope::infrastructure::{AdrParser, DefaultAdrParser};
-use adrscope::infrastructure::fs::RealFileSystem;
+use adrscope::infrastructure::{AdrParser, DefaultAdrParser, RealFileSystem};
 
 let fs = RealFileSystem::new();
 let parser = DefaultAdrParser::new();
