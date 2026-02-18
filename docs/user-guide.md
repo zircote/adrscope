@@ -285,6 +285,118 @@ Recommended sections following MADR format:
 - **Options Considered** (optional) - Alternatives evaluated
 - **Decision Outcome** (optional) - Detailed rationale
 
+## GitHub Action
+
+ADRScope can be used in GitHub Actions workflows for automated validation, documentation generation, and wiki publishing.
+
+### Basic Setup
+
+Add ADRScope to your workflow:
+
+````yaml
+- name: Validate ADRs
+  uses: zircote/adrscope@v0
+  with:
+    command: validate
+    input-dir: docs/decisions
+    strict: true
+````
+
+### Action Features
+
+- **All commands available**: `validate`, `generate`, `stats`, `wiki`
+- **Inline annotations**: Validation errors appear directly in PR diffs
+- **Cross-platform**: Linux, macOS, Windows (x86_64, ARM64)
+- **Fast startup**: Pre-built binaries (~2-5 seconds)
+
+### Complete CI Workflow Example
+
+````yaml
+name: ADR CI
+on:
+  pull_request:
+    paths: ['docs/decisions/**']
+
+jobs:
+  adr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ADRs
+        uses: zircote/adrscope@v0
+        with:
+          command: validate
+          strict: true
+
+      - name: Generate Viewer
+        uses: zircote/adrscope@v0
+        with:
+          command: generate
+          output: adr-viewer.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adr-viewer
+          path: adr-viewer.html
+````
+
+### Publishing to GitHub Wiki
+
+Deploy ADRs to your GitHub Wiki automatically:
+
+````yaml
+name: Deploy ADRs to Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/decisions/**'
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ADRs
+        uses: zircote/adrscope@v0
+        with:
+          command: validate
+          strict: true
+
+      - name: Generate Wiki Pages
+        uses: zircote/adrscope@v0
+        with:
+          command: wiki
+          output: wiki/
+
+      - name: Deploy to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          path: wiki/
+````
+
+### Action Inputs
+
+All action inputs correspond to CLI options:
+
+| Input | Command | Description | Default |
+|-------|---------|-------------|---------|
+| `command` | All | Command to run: `validate`, `generate`, `stats`, `wiki` | Required |
+| `input-dir` | All | Directory containing ADR files | `docs/decisions` |
+| `output` | `generate`, `wiki` | Output file or directory path | Command-specific |
+| `pattern` | All | Glob pattern for finding ADR files | `**/*.md` |
+| `strict` | `validate` | Fail on warnings (not just errors) | `false` |
+| `title` | `generate` | HTML viewer page title | `Architecture Decision Records` |
+| `theme` | `generate` | Theme: `light`, `dark`, or `auto` | `auto` |
+| `format` | `stats` | Output format: `text`, `json`, `markdown` | `text` |
+
+See [ACTION.md](../ACTION.md) for complete action documentation and advanced examples.
+
 ## Themes
 
 The HTML viewer supports three themes:
