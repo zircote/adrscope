@@ -55,6 +55,12 @@ Precise technical documentation:
   - Output formats
   - Theme options
 
+- **[Dependencies Reference](dependencies.md)** - External crate dependencies
+  - Core dependencies (clap, serde, askama, pulldown-cmark, etc.)
+  - Development dependencies
+  - Version constraints and update policy
+  - Supply chain security
+
 ### Explanation (Understanding-Oriented)
 
 Conceptual documentation and design decisions:
@@ -124,6 +130,7 @@ If you want to contribute to ADRScope:
 | Generate wiki pages | `adrscope wiki` | [User Guide](user-guide.md#wiki-command) |
 | Use in GitHub Actions | See workflow | [README](../README.md#github-action) |
 | Use as Rust library | See examples | [API Reference](api-reference.md) |
+| Check dependencies | `cargo tree` | [Dependencies](dependencies.md) |
 
 ### Common Issues
 
@@ -228,5 +235,5 @@ Can't find what you need?
 
 ---
 
-**Last Updated**: 2026-02-17  
+**Last Updated**: 2026-02-24  
 **Version**: 0.3.0
