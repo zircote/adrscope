@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **[Deps]**: Update pulldown-cmark from 0.13.0 to 0.13.1 (patch release)
+
+### Added
+
+- **[Docs]**: Add comprehensive dependencies reference documentation
+  - Complete catalog of all external dependencies with purposes
+  - Version constraints and update policy
+  - Supply chain security information
+  - Dependency graph visualization
+
 ## [0.3.0] - 2026-01-15
 
 ### Changed
