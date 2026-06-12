@@ -142,7 +142,10 @@ runs:
         BIN_NAME="adrscope-${VERSION}-${PLATFORM}"
         if curl -fsSL -o "${INSTALL_DIR}/adrscope" "${RELEASE_URL}/${BIN_NAME}"; then
           echo "Downloaded ${BIN_NAME}; verifying attestation"
-          gh attestation verify "${INSTALL_DIR}/adrscope" --repo zircote/adrscope
+          if ! gh attestation verify "${INSTALL_DIR}/adrscope" --repo zircote/adrscope; then
+            echo "::error::Attestation verification failed for ${BIN_NAME}. The binary does not match what GitHub Actions built from zircote/adrscope, or the provided github-token cannot read attestations."
+            exit 1
+          fi
         else
           # Legacy releases (<= 0.3.0): target-triple tar.gz, no attestations.
           ARCHIVE_NAME="adrscope-${VERSION}-${ARCH}-${OS}.tar.gz"
