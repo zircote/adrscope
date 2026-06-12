@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **[Deps]**: Update pulldown-cmark from 0.13.0 to 0.13.1 (patch release)
-
 ### Added
 
 - **[Docs]**: Add comprehensive dependencies reference documentation
@@ -18,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Version constraints and update policy
   - Supply chain security information
   - Dependency graph visualization
+
+- **[Attested Delivery]**: Release pipeline now attaches SLSA build provenance
+  and a CycloneDX SBOM attestation to every platform binary, and fail-closed
+  verifies every attestation before the GitHub Release is published
+- **[Publish Workflow]**: crates.io publishing via OIDC Trusted Publishing,
+  with SLSA provenance attested against the exact `.crate` bytes the registry
+  serves
+- **[Homebrew Workflow]**: Formula in `zircote/homebrew-tap` is regenerated
+  automatically on release (source-built formula)
+- **[CI]**: `pin-check` job asserts every workflow `uses:` reference is pinned
+  to a full 40-char commit SHA
+- **[SECURITY.md]**: Documents how to verify release artifact attestations
+- **[LICENSE]**: Add MIT license text
+
+### Changed
+
+- **[Deps]**: Update pulldown-cmark from 0.13.0 to 0.13.1 (patch release)
+- **[Release Artifacts]**: Binaries are now published as bare executables
+  named `adrscope-{version}-{platform}` (e.g. `adrscope-0.4.0-linux-amd64`)
+  instead of target-triple tar.gz/zip archives
+- **[Action]**: Downloads the new artifact naming and fail-closed verifies
+  the binary's attestation before use; falls back to legacy archives for
+  releases <= 0.3.0
+- **[Crate Packaging]**: `Cargo.toml` include allowlist keeps repo-internal
+  files out of the published crate
+>>>>>>> 28aebca (feat(release): adopt attested delivery pipeline)
 
 ## [0.3.0] - 2026-01-15
 

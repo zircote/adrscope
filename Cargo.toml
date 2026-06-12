@@ -12,6 +12,16 @@ documentation = "https://docs.rs/adrscope"
 readme = "README.md"
 keywords = ["adr", "architecture", "documentation", "cli", "madr"]
 categories = ["command-line-utilities", "development-tools"]
+# Allowlist: the published crate ships only what the build needs. Without
+# this, tracked repo internals (.claude/, .fastembed_cache/ model blobs,
+# CI workflows) end up in the .crate archive.
+include = [
+    "src/**",
+    "templates/**",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+]
 
 [lib]
 name = "adrscope"
