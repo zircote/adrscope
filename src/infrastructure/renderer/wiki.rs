@@ -73,22 +73,22 @@ impl WikiRenderer {
 
         // Output in a fixed order
         for status in Status::all() {
-            if let Some(group) = by_status.get(status) {
-                if !group.is_empty() {
-                    let _ = writeln!(output, "## {} {}", status_emoji(*status), status);
-                    let _ = writeln!(output);
+            if let Some(group) = by_status.get(status)
+                && !group.is_empty()
+            {
+                let _ = writeln!(output, "## {} {}", status_emoji(*status), status);
+                let _ = writeln!(output);
 
-                    for adr in group {
-                        let _ = writeln!(
-                            output,
-                            "- [{}]({}) - {}",
-                            adr.title(),
-                            adr.filename(),
-                            adr.description()
-                        );
-                    }
-                    let _ = writeln!(output);
+                for adr in group {
+                    let _ = writeln!(
+                        output,
+                        "- [{}]({}) - {}",
+                        adr.title(),
+                        adr.filename(),
+                        adr.description()
+                    );
                 }
+                let _ = writeln!(output);
             }
         }
 

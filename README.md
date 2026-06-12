@@ -4,7 +4,7 @@
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-ADRScope-blue?logo=github)](https://github.com/marketplace/actions/adrscope)
 [![Crates.io](https://img.shields.io/crates/v/adrscope.svg?logo=rust&logoColor=white)](https://crates.io/crates/adrscope)
 [![Documentation](https://docs.rs/adrscope/badge.svg)](https://docs.rs/adrscope)
-[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Rust Version](https://img.shields.io/badge/rust-1.95%2B-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![cargo-deny](https://img.shields.io/badge/security-cargo--deny-blue?logo=rust&logoColor=white)](https://github.com/EmbarkStudios/cargo-deny)
 
@@ -342,7 +342,7 @@ println!("Generated viewer with {} ADRs", result.adr_count);
 
 ### Prerequisites
 
-- Rust 1.85+ (2024 edition)
+- Rust 1.95+ (2024 edition)
 - [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) for supply chain security
 
 ### Build Commands
@@ -367,7 +367,7 @@ make install    # Install to ~/.cargo/bin
 
 ## MSRV Policy
 
-The Minimum Supported Rust Version (MSRV) is **1.85**. Increasing the MSRV is considered a minor breaking change.
+The Minimum Supported Rust Version (MSRV) is **1.95**. Increasing the MSRV is considered a minor breaking change.
 
 ## Contributing
 

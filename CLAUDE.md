@@ -79,7 +79,7 @@ Vec<Adr> → Facets + Graph → Askama template → HTML
 - **No panics in library code**: `unwrap`, `expect`, `panic!` are denied by clippy
 - **No unsafe code**: `#![forbid(unsafe_code)]`
 - **All errors use `Result`**: Custom `Error` enum in `error.rs` with `thiserror`
-- **MSRV**: Rust 1.85 (2024 edition)
+- **MSRV**: Rust 1.95 (2024 edition)
 
 ## Testing
 

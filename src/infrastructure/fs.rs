@@ -47,13 +47,13 @@ impl FileSystem for RealFileSystem {
 
     fn write(&self, path: &Path, contents: &str) -> Result<()> {
         // Create parent directories if they don't exist
-        if let Some(parent) = path.parent() {
-            if !parent.exists() {
-                std::fs::create_dir_all(parent).map_err(|source| Error::FileWrite {
-                    path: path.to_path_buf(),
-                    source,
-                })?;
-            }
+        if let Some(parent) = path.parent()
+            && !parent.exists()
+        {
+            std::fs::create_dir_all(parent).map_err(|source| Error::FileWrite {
+                path: path.to_path_buf(),
+                source,
+            })?;
         }
 
         std::fs::write(path, contents).map_err(|source| Error::FileWrite {

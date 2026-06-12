@@ -2,7 +2,7 @@
 name = "adrscope"
 version = "0.3.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.95"
 description = "A lightweight, zero-dependency visualization tool for Architecture Decision Records"
 license = "MIT"
 authors = ["Robert Allen <zircote@gmail.com>"]

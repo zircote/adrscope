@@ -137,10 +137,10 @@ impl<F: FileSystem> GenerateUseCase<F> {
             .render(adrs.clone(), &options.input_dir, &config)?;
 
         // Write output
-        if let Some(parent) = Path::new(&options.output).parent() {
-            if !parent.as_os_str().is_empty() {
-                self.fs.create_dir_all(parent)?;
-            }
+        if let Some(parent) = Path::new(&options.output).parent()
+            && !parent.as_os_str().is_empty()
+        {
+            self.fs.create_dir_all(parent)?;
         }
         self.fs.write(Path::new(&options.output), &html)?;
 
