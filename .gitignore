@@ -45,7 +45,6 @@ doc/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-!.vscode/mcp.json
 *.swp
 *.swo
 *~
@@ -113,3 +112,6 @@ adr-viewer.html
 
 # Local plugin configuration (user-specific)
 .claude/*.local.md
+
+# Local embedding model cache (fastembed)
+.fastembed_cache/
