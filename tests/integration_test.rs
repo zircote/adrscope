@@ -191,16 +191,13 @@ Content.
 // =============================================================================
 
 fn create_temp_dir() -> PathBuf {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_nanos();
-    let temp_dir = std::env::temp_dir().join(format!(
-        "adrscope_test_{}_{}",
-        std::process::id(),
-        timestamp
-    ));
+    use std::sync::atomic::{AtomicU64, Ordering};
+    // PID + atomic counter: parallel tests sharing a nanosecond timestamp
+    // collided on one dir, and one test's cleanup deleted the other's files.
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let temp_dir =
+        std::env::temp_dir().join(format!("adrscope_test_{}_{}", std::process::id(), unique));
     fs::create_dir_all(&temp_dir).expect("Failed to create temp directory");
     temp_dir
 }

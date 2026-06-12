@@ -287,13 +287,7 @@ Some content.
 
         let result = use_case.execute(&options);
         // Should fail to parse due to missing title
-        assert!(
-            result.is_err()
-                || result
-                    .as_ref()
-                    .map(|r| !r.parse_errors.is_empty())
-                    .unwrap_or(false)
-        );
+        assert!(result.is_err() || result.as_ref().is_ok_and(|r| !r.parse_errors.is_empty()));
     }
 
     #[test]
