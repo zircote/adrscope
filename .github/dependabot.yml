@@ -10,6 +10,13 @@ updates:
       - "area/ci"
     commit-message:
       prefix: "ci"
+    ignore:
+      # gh-aw action refs inside compiled .lock.yml files are owned by the
+      # gh-aw compiler. Dependabot bumping them without `gh aw compile`
+      # breaks the runtime (missing gateway scripts, exit 127). Upgrades
+      # happen via `gh aw upgrade` instead.
+      - dependency-name: "github/gh-aw"
+      - dependency-name: "github/gh-aw-actions"
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
