@@ -1,0 +1,135 @@
+---
+name: Homebrew Package
+
+"on":
+  # workflow_run is the reliable trigger: releases are authored by
+  # github-actions[bot] (HOMEBREW_TAP_TOKEN is scoped to the tap repo
+  # only), and bot-authored release events do not trigger workflows.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to package'
+        required: true
+      dry_run:
+        description: 'Dry run (do not push)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  homebrew:
+    name: Update Homebrew Formula
+    runs-on: macos-latest
+    environment: copilot
+    # workflow_run fires for every Release completion, including branch
+    # dry-runs — only proceed for successful tag runs (head_branch is the
+    # tag name for tag-triggered runs).
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+
+    steps:
+      - name: Checkout homebrew tap
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          repository: ${{ github.repository_owner }}/homebrew-tap
+          # Fallback keeps read-only dry-runs working before the PAT is
+          # configured; the push step still requires the real token.
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN || github.token }}
+          path: homebrew-tap
+
+      - name: Get release info
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RUN_TAG: ${{ github.event.workflow_run.head_branch }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            VERSION="$RELEASE_TAG"
+            VERSION="${VERSION#v}"
+          elif [ "$EVENT_NAME" = "workflow_run" ]; then
+            VERSION="${RUN_TAG#v}"
+          else
+            VERSION="$INPUT_VERSION"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Source tarball URL
+          SRC_URL="https://github.com/${REPO}"
+          SRC_URL="${SRC_URL}/archive/refs/tags"
+          SRC_URL="${SRC_URL}/v${VERSION}.tar.gz"
+
+          # Compute SHA256
+          SRC_SHA=$(curl -sL "$SRC_URL" \
+            | shasum -a 256 | awk '{print $1}')
+
+          echo "src_url=$SRC_URL" >> "$GITHUB_OUTPUT"
+          echo "src_sha=$SRC_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Generate source formula
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          REPO: ${{ github.repository }}
+          SRC_URL: ${{ steps.release.outputs.src_url }}
+          SRC_SHA: ${{ steps.release.outputs.src_sha }}
+        run: |
+          cat > homebrew-tap/Formula/adrscope.rb << FORMULA
+          class Adrscope < Formula
+            desc "Validate, visualize, and manage Architecture Decision Records"
+            homepage "https://github.com/${REPO}"
+            url "${SRC_URL}"
+            sha256 "${SRC_SHA}"
+            version "${VERSION}"
+            license "MIT"
+            head "https://github.com/${REPO}.git", branch: "main"
+
+            depends_on "rust" => :build
+
+            def install
+              system "cargo", "install", *std_cargo_args
+            end
+
+            test do
+              assert_match version.to_s,
+                shell_output("#{bin}/adrscope --version")
+            end
+          end
+          FORMULA
+
+      - name: Commit and push formula
+        if: github.event.inputs.dry_run != 'true'
+        working-directory: homebrew-tap
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "github-actions[bot]@users.noreply.github.com"
+
+          git add Formula/adrscope.rb
+          # Idempotent: with both workflow_run and release triggers wired,
+          # a second firing for the same version must be a no-op.
+          if git diff --staged --quiet; then
+            echo "Formula already up to date for ${VERSION}; nothing to push"
+          else
+            git commit -m "adrscope: update to ${VERSION}"
+            git push
+          fi
+
+      - name: Show formula (dry run)
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "=== adrscope.rb (source) ==="
+          cat homebrew-tap/Formula/adrscope.rb

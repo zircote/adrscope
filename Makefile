@@ -56,11 +56,11 @@ audit:
 	cargo audit
 
 # MSRV check (Minimum Supported Rust Version)
-# Requires: rustup toolchain install 1.85
+# Requires: rustup toolchain install 1.95
 msrv:
-	@rustup run 1.85 rustc --version >/dev/null 2>&1 || \
-		(echo "Error: Rust 1.85 not installed. Run: rustup toolchain install 1.85" && exit 1)
-	rustup run 1.85 cargo check --all-features
+	@rustup run 1.95 rustc --version >/dev/null 2>&1 || \
+		(echo "Error: Rust 1.95 not installed. Run: rustup toolchain install 1.95" && exit 1)
+	rustup run 1.95 cargo check --all-features
 
 # Combined check target (fast feedback)
 check: fmt-check lint test-quiet

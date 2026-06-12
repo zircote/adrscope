@@ -47,13 +47,11 @@ impl MarkdownRenderer {
 
         for event in parser {
             match event {
-                Event::Text(t) | Event::Code(t) => {
-                    if !in_code_block {
-                        if !text.is_empty() && !text.ends_with(' ') {
-                            text.push(' ');
-                        }
-                        text.push_str(&t);
+                Event::Text(t) | Event::Code(t) if !in_code_block => {
+                    if !text.is_empty() && !text.ends_with(' ') {
+                        text.push(' ');
                     }
+                    text.push_str(&t);
                 },
                 Event::Start(Tag::CodeBlock(_)) => {
                     in_code_block = true;
@@ -61,10 +59,8 @@ impl MarkdownRenderer {
                 Event::End(TagEnd::CodeBlock) => {
                     in_code_block = false;
                 },
-                Event::SoftBreak | Event::HardBreak => {
-                    if !text.is_empty() && !text.ends_with(' ') {
-                        text.push(' ');
-                    }
+                Event::SoftBreak | Event::HardBreak if !text.is_empty() && !text.ends_with(' ') => {
+                    text.push(' ');
                 },
                 _ => {},
             }

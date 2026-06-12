@@ -10,7 +10,7 @@ Be respectful, inclusive, and collaborative. We're all here to build something u
 
 ### Prerequisites
 
-- **Rust 1.85+** (2024 edition)
+- **Rust 1.95+** (2024 edition)
 - **cargo-deny** - `cargo install cargo-deny`
 - **Git** with [Conventional Commits](https://www.conventionalcommits.org/) knowledge
 
@@ -353,7 +353,7 @@ GitHub Actions runs:
 - ✅ Tests (`cargo test`)
 - ✅ Documentation (`cargo doc`)
 - ✅ Supply chain security (`cargo deny check`)
-- ✅ MSRV verification (Rust 1.85)
+- ✅ MSRV verification (Rust 1.95)
 
 All checks must pass before merging.
 

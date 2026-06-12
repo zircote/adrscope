@@ -31,10 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
+        with:
+          toolchain: stable
 
       - name: Build API documentation
         run: |
@@ -43,7 +45,7 @@ jobs:
           echo '<meta http-equiv="refresh" content="0; url=adrscope/index.html">' > target/doc/index.html
 
       - name: Generate ADR viewer
-        uses: zircote/adrscope@v0
+        uses: zircote/adrscope@578e603049caa7c6cf4be0182a2294f29aeea589 # v0
         with:
           command: generate
           input-dir: docs/decisions
@@ -137,7 +139,7 @@ jobs:
           echo "- Name: \`$ARTIFACT_NAME\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: docs-${{ env.PROJECT_ID }}
           path: /tmp/docs-deploy-${{ env.PROJECT_ID }}/

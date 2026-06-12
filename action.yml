@@ -65,15 +65,20 @@ runs:
       id: platform
       shell: bash
       run: |
+        # platform: naming for attested releases (>= 0.4.0), e.g. linux-amd64.
+        # os/arch: legacy target-triple parts for pre-0.4.0 tar.gz archives.
         case "${{ runner.os }}" in
           Linux)
             echo "os=unknown-linux-gnu" >> $GITHUB_OUTPUT
+            PLATFORM_OS="linux"
             ;;
           macOS)
             echo "os=apple-darwin" >> $GITHUB_OUTPUT
+            PLATFORM_OS="macos"
             ;;
           Windows)
             echo "os=pc-windows-msvc" >> $GITHUB_OUTPUT
+            PLATFORM_OS="windows"
             ;;
           *)
             echo "::error::Unsupported platform: ${{ runner.os }}"
@@ -84,15 +89,19 @@ runs:
         case "${{ runner.arch }}" in
           X64)
             echo "arch=x86_64" >> $GITHUB_OUTPUT
+            PLATFORM_ARCH="amd64"
             ;;
           ARM64)
             echo "arch=aarch64" >> $GITHUB_OUTPUT
+            PLATFORM_ARCH="arm64"
             ;;
           *)
             echo "::error::Unsupported architecture: ${{ runner.arch }}"
             exit 1
             ;;
         esac
+
+        echo "platform=${PLATFORM_OS}-${PLATFORM_ARCH}" >> $GITHUB_OUTPUT
 
     - name: Get latest version
       id: version
@@ -120,23 +129,35 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
         VERSION="${{ steps.version.outputs.version }}"
+        PLATFORM="${{ steps.platform.outputs.platform }}"
         ARCH="${{ steps.platform.outputs.arch }}"
         OS="${{ steps.platform.outputs.os }}"
 
-        ARCHIVE_NAME="adrscope-${VERSION}-${ARCH}-${OS}.tar.gz"
-        DOWNLOAD_URL="https://github.com/zircote/adrscope/releases/download/v${VERSION}/${ARCHIVE_NAME}"
-
-        echo "Downloading ADRScope from: ${DOWNLOAD_URL}"
-
+        RELEASE_URL="https://github.com/zircote/adrscope/releases/download/v${VERSION}"
         INSTALL_DIR="${RUNNER_TEMP}/adrscope"
         mkdir -p "$INSTALL_DIR"
 
-        if ! curl -fsSL -o "/tmp/${ARCHIVE_NAME}" "$DOWNLOAD_URL"; then
-          echo "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
-          exit 1
+        # Attested releases (>= 0.4.0) ship bare binaries with SLSA build
+        # provenance; verify fail-closed before the binary is used.
+        BIN_NAME="adrscope-${VERSION}-${PLATFORM}"
+        if curl -fsSL -o "${INSTALL_DIR}/adrscope" "${RELEASE_URL}/${BIN_NAME}"; then
+          echo "Downloaded ${BIN_NAME}; verifying attestation"
+          if ! gh attestation verify "${INSTALL_DIR}/adrscope" --repo zircote/adrscope; then
+            echo "::error::Attestation verification failed for ${BIN_NAME}. The binary does not match what GitHub Actions built from zircote/adrscope, or the provided github-token cannot read attestations."
+            exit 1
+          fi
+        else
+          # Legacy releases (<= 0.3.0): target-triple tar.gz, no attestations.
+          ARCHIVE_NAME="adrscope-${VERSION}-${ARCH}-${OS}.tar.gz"
+          DOWNLOAD_URL="${RELEASE_URL}/${ARCHIVE_NAME}"
+          echo "Falling back to legacy archive: ${DOWNLOAD_URL}"
+          if ! curl -fsSL -o "/tmp/${ARCHIVE_NAME}" "$DOWNLOAD_URL"; then
+            echo "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
+            exit 1
+          fi
+          tar -xzf "/tmp/${ARCHIVE_NAME}" -C "$INSTALL_DIR"
         fi
 
-        tar -xzf "/tmp/${ARCHIVE_NAME}" -C "$INSTALL_DIR"
         chmod +x "${INSTALL_DIR}/adrscope"
         echo "${INSTALL_DIR}" >> $GITHUB_PATH
 
@@ -150,25 +171,39 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
         $VERSION = "${{ steps.version.outputs.version }}"
+        $PLATFORM = "${{ steps.platform.outputs.platform }}"
         $ARCH = "${{ steps.platform.outputs.arch }}"
         $OS = "${{ steps.platform.outputs.os }}"
 
-        $ARCHIVE_NAME = "adrscope-${VERSION}-${ARCH}-${OS}.zip"
-        $DOWNLOAD_URL = "https://github.com/zircote/adrscope/releases/download/v${VERSION}/${ARCHIVE_NAME}"
-
-        Write-Host "Downloading ADRScope from: ${DOWNLOAD_URL}"
-
+        $RELEASE_URL = "https://github.com/zircote/adrscope/releases/download/v${VERSION}"
         $INSTALL_DIR = "$env:RUNNER_TEMP\adrscope"
         New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 
+        # Attested releases (>= 0.4.0) ship bare binaries with SLSA build
+        # provenance; verify fail-closed before the binary is used.
+        $BIN_NAME = "adrscope-${VERSION}-${PLATFORM}.exe"
         try {
-          Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile "$env:TEMP\$ARCHIVE_NAME"
+          Invoke-WebRequest -Uri "${RELEASE_URL}/${BIN_NAME}" -OutFile "$INSTALL_DIR\adrscope.exe"
+          Write-Host "Downloaded ${BIN_NAME}; verifying attestation"
+          gh attestation verify "$INSTALL_DIR\adrscope.exe" --repo zircote/adrscope
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::Attestation verification failed for ${BIN_NAME}"
+            exit 1
+          }
         } catch {
-          Write-Host "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
-          exit 1
+          # Legacy releases (<= 0.3.0): target-triple zip, no attestations.
+          $ARCHIVE_NAME = "adrscope-${VERSION}-${ARCH}-${OS}.zip"
+          $DOWNLOAD_URL = "${RELEASE_URL}/${ARCHIVE_NAME}"
+          Write-Host "Falling back to legacy archive: ${DOWNLOAD_URL}"
+          try {
+            Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile "$env:TEMP\$ARCHIVE_NAME"
+          } catch {
+            Write-Host "::error::Failed to download ADRScope from ${DOWNLOAD_URL}"
+            exit 1
+          }
+          Expand-Archive -Path "$env:TEMP\$ARCHIVE_NAME" -DestinationPath $INSTALL_DIR -Force
         }
 
-        Expand-Archive -Path "$env:TEMP\$ARCHIVE_NAME" -DestinationPath $INSTALL_DIR -Force
         Add-Content -Path $env:GITHUB_PATH -Value $INSTALL_DIR
 
         Write-Host "ADRScope installed successfully"
