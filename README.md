@@ -1,6 +1,6 @@
 # ADRScope
 
-[![CI](https://github.com/zircote/adrscope/actions/workflows/ci.yml/badge.svg)](https://github.com/zircote/adrscope/actions/workflows/ci.yml)
+[![CI](https://github.com/zircote/adrscope/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zircote/adrscope/actions/workflows/ci.yml?query=branch%3Amain)
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-ADRScope-blue?logo=github)](https://github.com/marketplace/actions/adrscope)
 [![Crates.io](https://img.shields.io/crates/v/adrscope.svg?logo=rust&logoColor=white)](https://crates.io/crates/adrscope)
 [![Documentation](https://docs.rs/adrscope/badge.svg)](https://docs.rs/adrscope)
