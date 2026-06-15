@@ -45,7 +45,7 @@ jobs:
           echo '<meta http-equiv="refresh" content="0; url=adrscope/index.html">' > target/doc/index.html
 
       - name: Generate ADR viewer
-        uses: zircote/adrscope@e10f62e1e3469930f78180c5a18633c09932768b # v0
+        uses: zircote/adrscope@14b3dfb4f7a4adbf76af7ba9f13f0e122439b6d5 # v0
         with:
           command: generate
           input-dir: docs/decisions
