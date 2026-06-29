@@ -183,7 +183,7 @@ jobs:
       - name: Install cargo-audit
         # v2.67.25
         uses: >-
-          taiki-e/install-action@7a79fe8c3a13344501c80d99cae481c1c9085912
+          taiki-e/install-action@bffeee26d4db9be238a4ea78d8826604ebcb594d
         with:
           tool: cargo-audit
 
