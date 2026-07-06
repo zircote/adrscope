@@ -40,7 +40,7 @@ jobs:
       - name: Install Rust toolchain
         # master
         uses: >-
-          dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+          dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88
         with:
           toolchain: stable
 
@@ -102,7 +102,7 @@ jobs:
       - name: Install Rust toolchain
         # master
         uses: >-
-          dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+          dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88
         with:
           toolchain: stable
           targets: ${{ matrix.target || '' }}
@@ -165,7 +165,7 @@ jobs:
       - name: Install Rust toolchain
         # master
         uses: >-
-          dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+          dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88
         with:
           toolchain: stable
 
